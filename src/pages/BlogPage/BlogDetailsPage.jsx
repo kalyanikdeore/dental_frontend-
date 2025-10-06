@@ -1,5 +1,4 @@
-// components/BlogDetailsPage.jsx
-import React, { useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { fadeIn } from "../../utils/motion";
@@ -10,31 +9,47 @@ import {
   FaPinterest,
   FaWhatsapp,
   FaSearch,
-  FaTooth,
-  FaUserMd,
-  FaCalendarAlt,
 } from "react-icons/fa";
+import axios from "axios";
 import DOMPurify from "dompurify";
-import { blogData } from "../../constants/blogData";
 
 const BlogDetailsPage = () => {
   const { slug } = useParams();
+  const [blog, setBlog] = useState(null);
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Find the blog post by slug
-  const blog = blogData.blogs.find((post) => post.slug === slug);
+  const API_BASE_URL = "http://localhost:8000/api";
+  const STORAGE_URL = "http://localhost:8000/uploads";
 
-  // Get recent posts (excluding current one)
-  const recentPosts = blogData.blogs
-    .filter((post) => post.slug !== slug)
-    .sort((a, b) => new Date(b.published_date) - new Date(a.published_date))
-    .slice(0, 5);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [postRes, recentRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/blog/${slug}`),
+          axios.get(`${API_BASE_URL}/blog/recent`),
+        ]);
+        setBlog(postRes.data.post);
+        setRecentPosts(recentRes.data.filter((post) => post.slug !== slug));
+      } catch (err) {
+        setError(err.message || "Failed to load blog post");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Process content with sanitization
+    fetchData();
+  }, [slug]);
+
   const processedContent = useMemo(() => {
     if (!blog?.content) return "";
 
-    // Sanitize HTML
-    return DOMPurify.sanitize(blog.content, {
+    let fixedContent = blog.content.replace(/src="([^"]*)"/g, (match, src) =>
+      src.startsWith("http") ? match : `src="${STORAGE_URL}/${src}"`
+    );
+
+    return DOMPurify.sanitize(fixedContent, {
       ALLOWED_TAGS: [
         "h1",
         "h2",
@@ -53,7 +68,6 @@ const BlogDetailsPage = () => {
         "a",
         "div",
         "span",
-        "blockquote",
       ],
       ALLOWED_ATTR: [
         "src",
@@ -78,45 +92,50 @@ const BlogDetailsPage = () => {
       : "";
   }, [blog?.published_date]);
 
-  // Update document title and meta description for SEO
-  React.useEffect(() => {
-    if (blog) {
-      document.title = blog.seo_title || blog.title;
-
-      const metaDescription = document.querySelector(
-        'meta[name="description"]'
-      );
-      if (metaDescription) {
-        metaDescription.setAttribute(
-          "content",
-          blog.seo_description || blog.excerpt
-        );
-      } else {
-        const newMeta = document.createElement("meta");
-        newMeta.name = "description";
-        newMeta.content = blog.seo_description || blog.excerpt;
-        document.head.appendChild(newMeta);
-      }
-    }
-  }, [blog]);
-
-  if (!blog) {
+  if (loading) {
     return (
-      <div className="text-center py-12 mt-20">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Blog Post Not Found
-        </h2>
-        <p className="text-gray-600 mb-6">
-          The requested blog post could not be found.
-        </p>
-        <Link
-          to="/blog"
-          className="inline-block bg-green-500 text-white font-medium py-2 px-6 rounded-md hover:bg-green-600 transition-colors"
-        >
-          Back to Blog
-        </Link>
+      <div className="h-[600px] md:h-[700px] flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <motion.div
+            className="flex justify-center mb-6"
+            animate={{
+              rotate: 360,
+            }}
+            transition={{
+              duration: 2,
+              ease: "linear",
+              repeat: Infinity,
+            }}
+          >
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"></div>
+          </motion.div>
+          <motion.h2
+            className="text-2xl font-semibold text-gray-700"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            Loading...
+          </motion.h2>
+          <motion.p
+            className="text-gray-500 mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            Preparing your experience
+          </motion.p>
+        </div>
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorDisplay message={error} />;
+  }
+
+  if (!blog) {
+    return <NotFoundDisplay />;
   }
 
   return (
@@ -126,402 +145,344 @@ const BlogDetailsPage = () => {
       viewport={{ once: true }}
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-20"
     >
-      {/* SEO Structured Data */}
-      <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BlogPosting",
-          headline: blog.title,
-          description: blog.seo_description || blog.excerpt,
-          image: blog.image_url,
-          datePublished: blog.published_date,
-          dateModified: blog.published_date,
-          author: {
-            "@type": "Person",
-            name: blog.author_name,
-          },
-          publisher: {
-            "@type": "Organization",
-            name: "Dr. Joshi's Care & Cure Dental Clinic",
-            logo: "/logo.png",
-          },
-          mainEntityOfPage: {
-            "@type": "WebPage",
-            "@id": window.location.href,
-          },
-        })}
-      </script>
-
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Main Content */}
         <motion.div
           variants={fadeIn("right", "spring", 0.2, 1)}
           className="lg:w-2/3"
         >
           <article className="bg-white rounded-lg shadow-md overflow-hidden">
-            {/* Featured Image */}
             <img
-              src={blog.image_url}
+              src={`${STORAGE_URL}/${blog.image_url}`}
               alt={blog.title}
               className="w-full h-96 object-cover"
               loading="lazy"
             />
 
             <div className="p-8">
-              {/* Blog Header */}
-              <div className="flex items-center justify-between mb-4">
-                <span className="inline-flex items-center px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                  <FaTooth className="mr-1" /> {blog.category}
-                </span>
-                <span className="inline-flex items-center text-sm text-gray-500">
-                  <FaCalendarAlt className="mr-1" /> {formattedDate}
-                </span>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                {blog.title}
-              </h1>
+              <BlogHeader
+                category={blog.category}
+                date={formattedDate}
+                title={blog.title}
+              />
 
-              {/* Author Info */}
-              <div className="flex items-center gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
-                <img
-                  src={blog.author_avatar}
-                  alt={blog.author_name}
-                  className="w-12 h-12 rounded-full object-cover"
-                  loading="lazy"
-                />
-                <div>
-                  <div className="flex items-center">
-                    <FaUserMd className="text-green-500 mr-2" />
-                    <h4 className="font-medium text-gray-800">
-                      {blog.author_name}
-                    </h4>
-                  </div>
-                  <p className="text-sm text-gray-500">{blog.author_role}</p>
-                </div>
-              </div>
+              <AuthorInfo
+                avatar={`${STORAGE_URL}/${blog.author_avatar}`}
+                name={blog.author_name}
+                role={blog.author_role}
+              />
 
-              {/* Article Content */}
               <div
-                className="prose max-w-none mt-6"
+                className="prose max-w-none"
                 dangerouslySetInnerHTML={{ __html: processedContent }}
               ></div>
 
-              {/* Tags */}
-              {blog.tags && blog.tags.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h4 className="text-lg font-medium text-gray-800 mb-3">
-                    Tags:
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {blog.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Related Products */}
               {blog.related_products?.length > 0 && (
-                <div className="mt-12 bg-green-50 p-6 rounded-lg border border-green-100">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                    Related Services
-                  </h3>
-                  <ul className="space-y-2">
-                    {blog.related_products.map((product, index) => (
-                      <li key={index} className="flex items-center">
-                        <span className="text-green-500 mr-2">•</span>
-                        <Link
-                          to={product.link}
-                          className="text-green-600 hover:text-green-700 hover:underline font-medium"
-                        >
-                          {product.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <RelatedProducts products={blog.related_products} />
               )}
 
-              {/* Social Sharing */}
-              <div className="mt-12 pt-6 border-t border-gray-200">
-                <h4 className="text-lg font-medium text-gray-800 mb-4">
-                  Share this article
-                </h4>
-                <div className="flex gap-3">
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                      window.location.href
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors flex items-center justify-center"
-                    aria-label="Share on Facebook"
-                  >
-                    <FaFacebook size={18} />
-                  </a>
-                  <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                      blog.title
-                    )}&url=${encodeURIComponent(window.location.href)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-400 hover:bg-blue-500 text-white p-3 rounded-full transition-colors flex items-center justify-center"
-                    aria-label="Share on Twitter"
-                  >
-                    <FaTwitter size={18} />
-                  </a>
-                  <a
-                    href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(
-                      window.location.href
-                    )}&title=${encodeURIComponent(blog.title)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-blue-700 hover:bg-blue-800 text-white p-3 rounded-full transition-colors flex items-center justify-center"
-                    aria-label="Share on LinkedIn"
-                  >
-                    <FaLinkedin size={18} />
-                  </a>
-                  <a
-                    href={`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(
-                      window.location.href
-                    )}&media=${encodeURIComponent(
-                      blog.image_url
-                    )}&description=${encodeURIComponent(blog.excerpt)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-full transition-colors flex items-center justify-center"
-                    aria-label="Share on Pinterest"
-                  >
-                    <FaPinterest size={18} />
-                  </a>
-                  <a
-                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                      `${blog.title} ${window.location.href}`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-full transition-colors flex items-center justify-center"
-                    aria-label="Share on WhatsApp"
-                  >
-                    <FaWhatsapp size={18} />
-                  </a>
-                </div>
-              </div>
+              <SocialSharing
+                url={window.location.href}
+                title={blog.title}
+                imageUrl={`${STORAGE_URL}/${blog.image_url}`}
+                excerpt={blog.excerpt}
+              />
             </div>
           </article>
 
-          {/* Call to Action */}
-          <motion.div
-            variants={fadeIn("up", "spring", 0.3, 1)}
-            className="mt-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md p-8 text-center text-white"
-          >
-            <h3 className="text-2xl font-bold mb-4">
-              Ready to Improve Your Dental Health?
-            </h3>
-            <p className="mb-6 text-green-100">
-              Schedule a consultation with our expert dental team in Nashik
-              today.
-            </p>
-            <Link
-              to="/contact/deolali-camp"
-              className="inline-block bg-white text-green-600 font-semibold py-3 px-8 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              Book Your Appointment Now
-            </Link>
-          </motion.div>
-
-          {/* Comments Section */}
-          <motion.div
-            variants={fadeIn("up", "spring", 0.4, 1)}
-            className="mt-12 bg-white rounded-lg shadow-md p-8"
-          >
-            <h3 className="text-xl font-semibold text-gray-800 mb-6">
-              Comments (0)
-            </h3>
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-lg font-medium text-gray-800 mb-4">
-                Leave a comment
-              </h4>
-              <form className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label
-                    htmlFor="comment"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Comment *
-                  </label>
-                  <textarea
-                    id="comment"
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-md transition-colors"
-                >
-                  Post Comment
-                </button>
-              </form>
-            </div>
-          </motion.div>
+          <CommentsSection />
         </motion.div>
 
-        {/* Sidebar */}
-        <motion.aside
-          variants={fadeIn("left", "spring", 0.3, 1)}
-          className="lg:w-1/3"
-        >
-          <div className="bg-gray-50 p-6 rounded-lg sticky top-8">
-            {/* Search Widget */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Search Articles
-              </h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search articles..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                />
-                <button className="absolute right-3 top-2.5 text-gray-400 hover:text-green-500">
-                  <FaSearch className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Categories Widget */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Categories
-              </h3>
-              <ul className="space-y-2">
-                {blogData.categories.map((category, index) => (
-                  <li key={index}>
-                    <Link
-                      to={`/blog/category/${category
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                      className="flex items-center justify-between text-gray-600 hover:text-green-600 transition-colors py-2"
-                    >
-                      <span>{category}</span>
-                      <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
-                        {
-                          blogData.blogs.filter(
-                            (blog) => blog.category === category
-                          ).length
-                        }
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Recent Posts Widget */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Recent Posts
-              </h3>
-              <ul className="space-y-3">
-                {recentPosts.map((post) => (
-                  <li key={post.id}>
-                    <Link
-                      to={`/blog/${post.slug}`}
-                      className="flex items-start gap-3 group p-2 rounded-md hover:bg-white transition-colors"
-                    >
-                      <img
-                        src={post.image_url}
-                        alt={post.title}
-                        className="w-16 h-16 object-cover rounded"
-                        loading="lazy"
-                      />
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-800 group-hover:text-green-600 transition-colors line-clamp-2">
-                          {post.title}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {new Date(post.published_date).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
-                          )}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Newsletter Widget */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Subscribe to Our Blog
-              </h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Get the latest dental health tips and news delivered to your
-                inbox
-              </p>
-              <form className="space-y-3">
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
-        </motion.aside>
+        <BlogSidebar recentPosts={recentPosts} storageUrl={STORAGE_URL} />
       </div>
     </motion.div>
   );
 };
+
+const ErrorDisplay = ({ message }) => (
+  <div className="text-center py-12 text-red-500">
+    Error loading blog post: {message}
+  </div>
+);
+
+const NotFoundDisplay = () => (
+  <div className="text-center py-12">Blog post not found</div>
+);
+
+const BlogHeader = ({ category, date, title }) => (
+  <>
+    <div className="flex items-center justify-between mb-4">
+      <span className="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
+        {category}
+      </span>
+      <span className="text-sm text-gray-500">{date}</span>
+    </div>
+    <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
+  </>
+);
+
+const AuthorInfo = ({ avatar, name, role }) => (
+  <div className="flex items-center gap-4 mb-8">
+    <img
+      src={avatar}
+      alt={name}
+      className="w-12 h-12 rounded-full object-cover"
+      loading="lazy"
+    />
+    <div>
+      <h4 className="font-medium text-gray-800">{name}</h4>
+      <p className="text-sm text-gray-500">{role}</p>
+    </div>
+  </div>
+);
+
+const RelatedProducts = ({ products }) => (
+  <div className="mt-12 bg-gray-50 p-6 rounded-lg">
+    <h3 className="text-xl font-semibold text-gray-800 mb-4">
+      Related Products
+    </h3>
+    <ul className="space-y-2">
+      {products.map((product, index) => (
+        <li key={index}>
+          <Link
+            to={product.link}
+            className="text-green-600 hover:text-green-700 hover:underline"
+          >
+            {product.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+const SocialSharing = ({ url, title, imageUrl, excerpt }) => (
+  <div className="mt-12 pt-6 border-t border-gray-200">
+    <h4 className="text-lg font-medium text-gray-800 mb-4">
+      Share this article
+    </h4>
+    <div className="flex gap-4">
+      <SocialShareButton
+        platform="facebook"
+        url={url}
+        Icon={FaFacebook}
+        color="bg-blue-600 hover:bg-blue-700"
+      />
+      <SocialShareButton
+        platform="twitter"
+        url={url}
+        text={title}
+        Icon={FaTwitter}
+        color="bg-blue-400 hover:bg-blue-500"
+      />
+      <SocialShareButton
+        platform="linkedin"
+        url={url}
+        title={title}
+        Icon={FaLinkedin}
+        color="bg-blue-700 hover:bg-blue-800"
+      />
+      <SocialShareButton
+        platform="pinterest"
+        url={url}
+        media={imageUrl}
+        description={excerpt}
+        Icon={FaPinterest}
+        color="bg-red-600 hover:bg-red-700"
+      />
+      <SocialShareButton
+        platform="whatsapp"
+        url={url}
+        text={title}
+        Icon={FaWhatsapp}
+        color="bg-green-500 hover:bg-green-600"
+      />
+    </div>
+  </div>
+);
+
+const SocialShareButton = ({
+  platform,
+  url,
+  text,
+  title,
+  media,
+  description,
+  Icon,
+  color,
+}) => {
+  const shareUrls = {
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      url
+    )}`,
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      text
+    )}&url=${encodeURIComponent(url)}`,
+    linkedin: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(
+      url
+    )}&title=${encodeURIComponent(title)}`,
+    pinterest: `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(
+      url
+    )}&media=${encodeURIComponent(media)}&description=${encodeURIComponent(
+      description
+    )}`,
+    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(
+      `${text} ${url}`
+    )}`,
+  };
+
+  return (
+    <a
+      href={shareUrls[platform]}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${color} text-white p-3 rounded-full transition-colors`}
+      aria-label={`Share on ${
+        platform.charAt(0).toUpperCase() + platform.slice(1)
+      }`}
+    >
+      <Icon size={18} />
+    </a>
+  );
+};
+
+const CommentsSection = () => (
+  <motion.div
+    variants={fadeIn("up", "spring", 0.4, 1)}
+    className="mt-12 bg-white rounded-lg shadow-md p-8"
+  >
+    <h3 className="text-xl font-semibold text-gray-800 mb-6">Comments (0)</h3>
+    <div className="border-t border-gray-200 pt-6">
+      <h4 className="text-lg font-medium text-gray-800 mb-4">
+        Leave a comment
+      </h4>
+      <form className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField id="name" label="Name *" type="text" required />
+          <InputField id="email" label="Email *" type="email" required />
+        </div>
+        <InputField id="comment" label="Comment *" type="textarea" required />
+        <button
+          type="submit"
+          className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-md transition-colors"
+        >
+          Post Comment
+        </button>
+      </form>
+    </div>
+  </motion.div>
+);
+
+const InputField = ({ id, label, type = "text", required = false }) => (
+  <div>
+    <label
+      htmlFor={id}
+      className="block text-sm font-medium text-gray-700 mb-1"
+    >
+      {label}
+    </label>
+    {type === "textarea" ? (
+      <textarea
+        id={id}
+        rows={4}
+        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+        required={required}
+      />
+    ) : (
+      <input
+        type={type}
+        id={id}
+        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+        required={required}
+      />
+    )}
+  </div>
+);
+
+const BlogSidebar = ({ recentPosts, storageUrl }) => (
+  <motion.aside
+    variants={fadeIn("left", "spring", 0.3, 1)}
+    className="lg:w-1/3"
+  >
+    <div className="bg-gray-50 p-6 rounded-lg sticky top-8">
+      <SearchWidget />
+      <RecentPosts posts={recentPosts} storageUrl={storageUrl} />
+      <NewsletterWidget />
+    </div>
+  </motion.aside>
+);
+
+const SearchWidget = () => (
+  <div className="mb-8">
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">Search</h3>
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="Search articles..."
+        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+      />
+      <button className="absolute right-3 top-2.5 text-gray-400 hover:text-green-500">
+        <FaSearch className="h-5 w-5" />
+      </button>
+    </div>
+  </div>
+);
+
+const RecentPosts = ({ posts, storageUrl }) => (
+  <div className="mb-8">
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Posts</h3>
+    <ul className="space-y-3">
+      {posts.map((post) => (
+        <li key={post.id}>
+          <Link
+            to={`/blog/${post.slug}`}
+            className="flex items-start gap-3 group"
+          >
+            <img
+              src={`${storageUrl}/${post.image_url}`}
+              alt={post.title}
+              className="w-16 h-16 object-cover rounded"
+              loading="lazy"
+            />
+            <div>
+              <h4 className="text-sm font-medium text-gray-800 group-hover:text-green-600 transition-colors">
+                {post.title}
+              </h4>
+              <p className="text-xs text-gray-500">
+                {new Date(post.published_date).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+const NewsletterWidget = () => (
+  <div>
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">Subscribe</h3>
+    <p className="text-sm text-gray-600 mb-3">
+      Get the latest articles and news delivered to your inbox
+    </p>
+    <form className="space-y-3">
+      <input
+        type="email"
+        placeholder="Your email address"
+        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+        required
+      />
+      <button
+        type="submit"
+        className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
+      >
+        Subscribe
+      </button>
+    </form>
+  </div>
+);
 
 export default BlogDetailsPage;

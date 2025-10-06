@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin, Clock, Calendar, ArrowLeft } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  Calendar,
+  ArrowLeft,
+  User,
+} from "lucide-react";
 import { useSEO } from "../../hooks/useSEO";
 
 // Clinic information
@@ -31,10 +39,18 @@ const clinics = [
   },
 ];
 
+// Doctors list
+const doctors = [
+  { id: 1, name: "Dr. Yatin Joshi" },
+  { id: 2, name: "Dr. Namrata Joshi" },
+  { id: 3, name: "Dr. Pravin Joshi" },
+  { id: 4, name: "Dr. Pranav Joshi" },
+  { id: 5, name: "Dr. Kalyani Joshi" },
+];
+
 const ContactUsPage = () => {
   useSEO("contact");
   const { clinicSlug } = useParams();
-  console.log(clinicSlug);
   const navigate = useNavigate();
   const [selectedClinic, setSelectedClinic] = useState(clinics[0]);
   const [formData, setFormData] = useState({
@@ -43,6 +59,8 @@ const ContactUsPage = () => {
     phone: "",
     message: "",
     clinic: "",
+    doctor: "",
+    appointmentDate: "",
   });
   const [submitStatus, setSubmitStatus] = useState(null);
 
@@ -76,8 +94,16 @@ const ContactUsPage = () => {
         phone: "",
         message: "",
         clinic: selectedClinic.name,
+        doctor: "",
+        appointmentDate: "",
       });
     }, 2000);
+  };
+
+  // Get today's date in YYYY-MM-DD format for min date
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
   };
 
   return (
@@ -210,22 +236,23 @@ const ContactUsPage = () => {
             className="bg-white rounded-lg shadow-md p-6"
           >
             <h2 className="text-2xl font-bold text-teal-800 mb-4">
-              Send us a Message
+              Book an Appointment
             </h2>
 
             {submitStatus === "success" ? (
               <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center">
                 <div className="text-teal-600 font-semibold mb-2">
-                  Thank you for your message!
+                  Thank you for your appointment request!
                 </div>
                 <p className="text-teal-700">
-                  We'll get back to you as soon as possible.
+                  We'll get back to you as soon as possible to confirm your
+                  appointment.
                 </p>
                 <button
                   onClick={() => setSubmitStatus(null)}
                   className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                 >
-                  Send Another Message
+                  Book Another Appointment
                 </button>
               </div>
             ) : (
@@ -248,7 +275,7 @@ const ContactUsPage = () => {
                   />
                 </div>
 
-                <div>
+                {/* <div>
                   <label
                     htmlFor="email"
                     className="block text-sm font-medium text-gray-700 mb-1"
@@ -264,14 +291,14 @@ const ContactUsPage = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
-                </div>
+                </div> */}
 
                 <div>
                   <label
                     htmlFor="phone"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Phone Number
+                    Phone Number *
                   </label>
                   <input
                     type="tel"
@@ -279,8 +306,52 @@ const ContactUsPage = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="doctor"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Preferred Doctor
+                    </label>
+                    <select
+                      id="doctor"
+                      name="doctor"
+                      value={formData.doctor}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="">Select a doctor</option>
+                      {doctors.map((doctor) => (
+                        <option key={doctor.id} value={doctor.name}>
+                          {doctor.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="appointmentDate"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Preferred Date
+                    </label>
+                    <input
+                      type="date"
+                      id="appointmentDate"
+                      name="appointmentDate"
+                      value={formData.appointmentDate}
+                      onChange={handleChange}
+                      min={getTodayDate()}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -311,15 +382,15 @@ const ContactUsPage = () => {
                     htmlFor="message"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Message *
+                    Message
                   </label>
                   <textarea
                     id="message"
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
-                    required
                     rows="4"
+                    placeholder="Any specific concerns or additional information..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   ></textarea>
                 </div>
@@ -336,8 +407,8 @@ const ContactUsPage = () => {
                     </>
                   ) : (
                     <>
-                      <Mail size={18} className="mr-2" />
-                      Send Message
+                      <Calendar size={18} className="mr-2" />
+                      Book Appointment
                     </>
                   )}
                 </button>

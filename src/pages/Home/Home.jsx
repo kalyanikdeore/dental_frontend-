@@ -1,93 +1,153 @@
 import React, { useState, useEffect, useRef } from "react";
+import axiosInstance from "../../services/api";
 import { motion, AnimatePresence } from "framer-motion";
-
 import {
-  Play,
-  ChevronLeft,
   ChevronRight,
-  Heart,
-  Calendar,
-  Phone,
-  Star,
-  Clock,
-  MapPin,
+  ChevronLeft,
+  Users,
+  Award,
   Shield,
   Smile,
-  Award,
-  Users,
   CheckCircle2,
-  ChevronRightCircle,
-  ChevronLeftCircle,
-  SmilePlus,
+  MapPin,
 } from "lucide-react";
-import { TbDental, TbSparkles, TbMedicalCross } from "react-icons/tb";
-import { FaTooth, FaChild, FaHeartbeat } from "react-icons/fa";
+import { TbDental, TbSparkles } from "react-icons/tb";
+import { FaTooth, FaChild } from "react-icons/fa";
 import { LuHeartPulse } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import { videoHero } from "../../assets";
 import HeroSection from "./HeroSection";
-import ContentWrapper from "../../components/ContentWrapper/ContentWrapper";
+import Stats from "./Stats";
+import CTA from "./CTA";
 
 const Home = () => {
-  // Welcome Section
+  // state hooks for each section
+  const [welcome, setWelcome] = useState(null);
+  const [services, setServices] = useState([]);
+  const [whyChoose, setWhyChoose] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [resWelcome, resServices, resWhy, resTestimonials, resFaqs] =
+          await Promise.all([
+            axiosInstance.get("/welcome-section"),
+            axiosInstance.get("/services"),
+            axiosInstance.get("/why-choose-us"),
+            axiosInstance.get("/testimonials"),
+            axiosInstance.get("/faqs"),
+          ]);
+
+        // Set data from backend responses
+        setWelcome(resWelcome.data.data || resWelcome.data);
+        setServices(resServices.data.data || resServices.data);
+        setWhyChoose(resWhy.data.data || resWhy.data);
+        setTestimonials(resTestimonials.data.data || resTestimonials.data);
+        setFaqs(resFaqs.data.data || resFaqs.data);
+      } catch (err) {
+        console.error("Error fetching home page data:", err);
+        setError("Failed to load data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-32">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
+        <span className="ml-3 text-gray-600">Loading...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-32">
+        <div className="text-red-600 text-lg mb-4">{error}</div>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Sub-components that use the fetched data
+
   const WelcomeSection = () => {
+    if (!welcome) return null;
+
     return (
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 mb-10 md:mb-0">
               <h2 className="text-3xl font-extrabold text-[#0a8583] mb-6">
-                Welcome to Dr. Joshi's Care & Cure Dental – Your Trusted Dentist
-                in Nashik
+                {welcome.title || "Welcome to Our Dental Clinic"}
               </h2>
               <p className="text-gray-600 mb-6">
-                With 22+ years of experience and 17,000+ happy patients, we are
-                among the most trusted dentists in Nashik. Our team is led by
-                specialists in cosmetic dentistry, dental implants, root canal
-                therapy, and child dental care, using modern techniques to
-                deliver pain-free and effective treatments.
+                {welcome.description || "Your trusted partner in dental care."}
               </p>
-              <div className="grid grid-cols-2 gap-6 mb-6">
-                <div className="flex items-center">
-                  <CheckCircle2 className="text-teal-600 mr-2" size={20} />
-                  <span className="text-gray-700">22+ Years Experience</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle2 className="text-teal-600 mr-2" size={20} />
-                  <span className="text-gray-700">17,000+ Happy Patients</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle2 className="text-teal-600 mr-2" size={20} />
-                  <span className="text-gray-700">Pain-Free Treatments</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle2 className="text-teal-600 mr-2" size={20} />
-                  <span className="text-gray-700">Modern Technology</span>
-                </div>
-              </div>
-              <Link
-                to="/about"
-                className="inline-flex items-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-              >
-                Learn More About Us
-              </Link>
+
+              {welcome.highlights &&
+                Array.isArray(welcome.highlights) &&
+                welcome.highlights.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {welcome.highlights.map((hl, idx) => (
+                      <div key={idx} className="flex items-center">
+                        <CheckCircle2
+                          className="text-teal-600 mr-2"
+                          size={20}
+                        />
+                        <span className="text-gray-700">{hl}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              {welcome.cta_text && welcome.cta_link && (
+                <Link
+                  to={welcome.cta_link}
+                  className="inline-flex items-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                >
+                  {welcome.cta_text}
+                  <ChevronRight size={20} className="ml-1" />
+                </Link>
+              )}
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <div className="relative w-full max-w-md">
-                <div className="bg-teal-100 h-80 w-64 absolute -bottom-4 -left-4 rounded-lg"></div>
-                <div className="bg-teal-200 h-80 w-64 absolute -top-4 -right-4 rounded-lg"></div>
-                <div className="relative bg-white p-6 rounded-lg shadow-lg border border-teal-100 h-80 w-64 flex items-center justify-center">
-                  <div className="text-center">
+              {welcome.image_url ? (
+                <img
+                  src={welcome.image_url}
+                  alt={welcome.title || "Welcome"}
+                  className="rounded-lg shadow-lg max-w-md w-full h-auto"
+                />
+              ) : (
+                <div className="relative w-full max-w-md">
+                  <div className="bg-teal-100 h-80 w-64 absolute -bottom-4 -left-4 rounded-lg"></div>
+                  <div className="bg-teal-200 h-80 w-64 absolute -top-4 -right-4 rounded-lg"></div>
+                  <div className="relative bg-white p-6 rounded-lg shadow-lg border border-teal-100 h-80 w-64 flex flex-col items-center justify-center">
                     <Users className="text-teal-600 mx-auto mb-4" size={48} />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                      Family Dentistry
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2 text-center">
+                      {services.length > 0 ? services[0].title : "Our Services"}
                     </h3>
-                    <p className="text-gray-600">
-                      Caring for all ages from children to seniors
+                    <p className="text-gray-600 text-center">
+                      {services.length > 0
+                        ? services[0].description
+                        : "Professional dental care for you and your family"}
                     </p>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -95,85 +155,74 @@ const Home = () => {
     );
   };
 
-  // Services Section
   const ServicesSection = () => {
-    const services = [
-      {
-        title: "Dental Implants in Nashik",
-        description:
-          "Permanent tooth replacement solutions using biocompatible titanium implants that feel, look, and function like your natural teeth.",
-        icon: <TbDental size={32} className="text-teal-600" />,
-        path: "treatments/dental-implants-nashik",
-      },
-      {
-        title: "Cosmetic Dentistry",
-        description:
-          "We enhance your smile using teeth reshaping, veneers, composite bonding, teeth whitening, and more—all customized to your facial aesthetics.",
-        icon: <SmilePlus size={32} className="text-teal-600" />,
-        path: "treatments/cosmetic-dentist-nashik",
-      },
-      {
-        title: "Root Canal Treatment",
-        description:
-          "Say goodbye to tooth pain. We use rotary endodontic and digital X-rays to provide fast and comfortable root canal procedures.",
-        icon: <FaTooth size={32} className="text-teal-600" />,
-        path: "/treatments/root-canal-treatment-nashik",
-      },
-      {
-        title: "Paediatric Dentistry",
-        description:
-          "Our child-friendly environment ensures stress-free dental visits. We offer preventive care, cavity fillings, and oral hygiene counselling for kids.",
-        icon: <FaChild size={32} className="text-teal-600" />,
-        path: "treatments/pediatric-dentist-nashik",
-      },
-      {
-        title: "Teeth Whitening in Nashik",
-        description:
-          "Safe and instant results with laser teeth whitening or home kits for a radiant, stain-free smile.",
-        icon: <TbSparkles size={32} className="text-teal-600" />,
-        path: "treatments/teeth-whitening-nashik",
-      },
-      {
-        title: "Periodontics (Gum Treatment)",
-        description:
-          "We treat bleeding gums, bad breath, and bone loss with deep cleaning (scaling and root planing) and advanced laser therapies.",
-        icon: <LuHeartPulse size={32} className="text-teal-600" />,
-        path: "treatments/gum-disease-treatment-nashik",
-      },
-    ];
+    if (!services || services.length === 0) return null;
 
     return (
       <section className="py-16 bg-teal-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-[#0a8583] mb-4">
-              Our Specialized Dental Services in Nashik
+              Our Specialized Dental Services
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Comprehensive dental care using the latest technology and
-              techniques
+              Comprehensive dental care tailored to your needs
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service, index) => (
-              <div
-                key={index}
-                className="bg-white p-6 rounded-4xl shadow-md hover:shadow-lg transition-shadow border border-teal-100"
-              >
-                <div className="mb-4">{service.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  {service.title}
-                </h3>
-                <p className="text-gray-600 mb-4">{service.description}</p>
-                <Link
-                  to={service.path} // ✅ Dynamic redirect here
-                  className="text-teal-600 hover:text-teal-800 font-medium flex items-center"
+            {services.map((svc, idx) => {
+              // Map icon key to actual React component
+              let iconComp = null;
+              switch (svc.icon) {
+                case "TbDental":
+                  iconComp = <TbDental size={32} className="text-teal-600" />;
+                  break;
+                case "TbSparkles":
+                  iconComp = <TbSparkles size={32} className="text-teal-600" />;
+                  break;
+                case "FaTooth":
+                  iconComp = <FaTooth size={32} className="text-teal-600" />;
+                  break;
+                case "FaChild":
+                  iconComp = <FaChild size={32} className="text-teal-600" />;
+                  break;
+                case "LuHeartPulse":
+                  iconComp = (
+                    <LuHeartPulse size={32} className="text-teal-600" />
+                  );
+                  break;
+                case "Users":
+                  iconComp = <Users size={32} className="text-teal-600" />;
+                  break;
+                case "Award":
+                  iconComp = <Award size={32} className="text-teal-600" />;
+                  break;
+                default:
+                  iconComp = <TbDental size={32} className="text-teal-600" />;
+              }
+
+              return (
+                <motion.div
+                  key={svc.id || idx}
+                  className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-shadow border border-teal-100"
+                  whileHover={{ y: -5 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  Learn more <ChevronRight size={16} className="ml-1" />
-                </Link>
-              </div>
-            ))}
+                  <div className="mb-4">{iconComp}</div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    {svc.title}
+                  </h3>
+                  <p className="text-gray-600 mb-4">{svc.description}</p>
+                  <Link
+                    to={svc.path || "/services"}
+                    className="text-teal-600 hover:text-teal-800 font-medium flex items-center"
+                  >
+                    Learn more <ChevronRight size={16} className="ml-1" />
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
 
           <div className="text-center mt-12">
@@ -189,136 +238,95 @@ const Home = () => {
     );
   };
 
-  // Why Choose Us Section
   const WhyChooseUsSection = () => {
-    const features = [
-      {
-        title: "Experienced Team",
-        description: "Dentists with 22+ years of trust and expertise",
-        icon: <Users size={24} className="text-teal-600" />,
-      },
-      {
-        title: "Modern Facility",
-        description: "Comfortable, hygienic, and state-of-the-art setup",
-        icon: <Award size={24} className="text-teal-600" />,
-      },
-      {
-        title: "Advanced Technology",
-        description:
-          "Latest equipment including digital X-rays, laser, and rotary tools",
-        icon: <Shield size={24} className="text-teal-600" />,
-      },
-      {
-        title: "Gentle Care for All Ages",
-        description: "Specialized treatments for children, adults, and seniors",
-        icon: <Smile size={24} className="text-teal-600" />,
-      },
-      {
-        title: "Affordable Options",
-        description: "Quality treatments with flexible payment plans",
-        icon: <CheckCircle2 size={24} className="text-teal-600" />,
-      },
-      {
-        title: "Central Location",
-        description: "Conveniently located in Nashik Road for easy access",
-        icon: <MapPin size={24} className="text-teal-600" />,
-      },
-    ];
+    if (!whyChoose || whyChoose.length === 0) return null;
 
     return (
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-[#0a8583] mb-4">
-              Why Choose Us as Your Family Dentist in Nashik?
+              Why Choose Us?
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              We're committed to providing exceptional dental care with a
-              personal touch
+              Experience the difference with our patient-centered approach
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="bg-teal-50 p-6 rounded-lg border border-teal-100 flex items-start"
-              >
-                <div className="bg-teal-100 p-3 rounded-full mr-4">
-                  {feature.icon}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </div>
-              </div>
-            ))}
+            {whyChoose.map((item, idx) => {
+              let iconComp = null;
+              switch (item.icon) {
+                case "Users":
+                  iconComp = <Users size={24} className="text-teal-600" />;
+                  break;
+                case "Award":
+                  iconComp = <Award size={24} className="text-teal-600" />;
+                  break;
+                case "Shield":
+                  iconComp = <Shield size={24} className="text-teal-600" />;
+                  break;
+                case "Smile":
+                  iconComp = <Smile size={24} className="text-teal-600" />;
+                  break;
+                case "CheckCircle2":
+                  iconComp = (
+                    <CheckCircle2 size={24} className="text-teal-600" />
+                  );
+                  break;
+                case "MapPin":
+                  iconComp = <MapPin size={24} className="text-teal-600" />;
+                  break;
+                case "TbDental":
+                  iconComp = <TbDental size={24} className="text-teal-600" />;
+                  break;
+                default:
+                  iconComp = <Users size={24} className="text-teal-600" />;
+              }
+
+              return (
+                <motion.div
+                  key={item.id || idx}
+                  className="bg-teal-50 p-6 rounded-lg border border-teal-100 flex items-start"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="bg-teal-100 p-3 rounded-full mr-4">
+                    {iconComp}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600">{item.description}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
     );
   };
 
-  // Testimonials Section
   const TestimonialsSection = () => {
-    const testimonials = [
-      {
-        name: "Ravi P.",
-        location: "Nashik",
-        rating: 5,
-        comment:
-          "The best dental implant experience I've ever had. Completely pain-free and super professional.",
-        treatment: "Dental Implants",
-      },
-      {
-        name: "Shraddha M.",
-        location: "Deolali",
-        rating: 5,
-        comment:
-          "My child loves visiting the dentist now. Dr. Joshi's team is so kind and patient!",
-        treatment: "Paediatric Dentistry",
-      },
-      {
-        name: "Vikram D.",
-        location: "Nashik Road",
-        rating: 5,
-        comment:
-          "Professional team with modern equipment. My root canal procedure was smooth and comfortable.",
-        treatment: "Root Canal Treatment",
-      },
-    ];
+    const clientsRef = useRef();
 
     const scrollClients = (direction) => {
       if (clientsRef.current) {
         const scrollAmount = direction === "left" ? -300 : 300;
-        clientsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        clientsRef.current.scrollBy({
+          left: scrollAmount,
+          behavior: "smooth",
+        });
       }
     };
 
-    // Animation variants
-    const slideVariants = {
-      enter: (direction) => ({
-        x: direction > 0 ? 1000 : -1000,
-        opacity: 0,
-      }),
-      center: {
-        x: 0,
-        opacity: 1,
-        transition: { duration: 0.5 },
-      },
-      exit: (direction) => ({
-        x: direction > 0 ? -1000 : 1000,
-        opacity: 0,
-        transition: { duration: 0.3 },
-      }),
-    };
-    const clientsRef = useRef();
+    if (!testimonials || testimonials.length === 0) return null;
 
     return (
       <section className="py-16 bg-white">
-        <div className="mt-28 max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
           <motion.h2
             className="text-3xl md:text-4xl font-extrabold text-center text-[#0a8583] mb-4"
             initial={{ opacity: 0, y: -20 }}
@@ -355,36 +363,37 @@ const Home = () => {
 
             <div
               ref={clientsRef}
-              className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-2 justify-center"
+              className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-2"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {testimonials.map((client, index) => (
+              {testimonials.map((client, idx) => (
                 <motion.div
-                  key={index}
+                  key={client.id || idx}
                   className="min-w-[300px] max-w-[350px] bg-white rounded-xl shadow-md border border-gray-100 flex-shrink-0"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
                   viewport={{ once: true }}
                 >
                   <div className="p-5 flex flex-col h-full justify-between">
                     <div>
                       <h4 className="font-bold text-gray-800 mb-1">
-                        {client.name}
+                        {client.name || "Anonymous"}
                       </h4>
                       <p className="text-sm text-[#00786F] mb-2">
-                        {client.treatment}
+                        {client.treatment || "Dental Treatment"}
                       </p>
                       <p className="text-gray-500 text-sm mb-4">
-                        {client.location}
+                        {client.location || "Location not specified"}
                       </p>
                       <p className="text-gray-600 italic mb-4 text-sm">
-                        "{client.comment}"
+                        "{client.comment || "Great service!"}"
                       </p>
                     </div>
                     <div className="flex gap-1 text-[#00786F] mt-auto">
                       {[...Array(5)].map((_, i) => (
                         <span key={i}>
-                          {i < client.rating ? (
+                          {i < (client.rating || 5) ? (
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
@@ -409,7 +418,7 @@ const Home = () => {
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                                d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.563.563 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
                               />
                             </svg>
                           )}
@@ -420,65 +429,20 @@ const Home = () => {
                 </motion.div>
               ))}
             </div>
-
-            <div className="text-center mt-12">
-              <a
-                href="https://www.google.com/search?sca_esv=e126eb4d051b0442&hl=en-IN&sxsrf=AE3TifNr_Dtdbla7hIZPea5IYv8ZDv9R2w:1757507049932&si=AMgyJEvkVjFQtirYNBhM3ZJIRTaSJ6PxY6y1_6WZHGInbzDnMYoQmT4ohuML6aQ2PsEJljXCqJtIR5FaZP8LvlO3lHcOmmVTAnZMmofty28cA7GXa_gdxY2ompeOKMyZBQp2esPbePTO5knQp1Wfb43CWHjUKjtwXwUwiOOFEGTjDwRl6Wqtqpo%3D&q=Dr.+Joshi%27s+Care+%26+Cure+Dental+Clinic+Reviews&sa=X&ved=2ahUKEwiw7Zr7l86PAxVB2DgGHcRVO44Q0bkNegQIJhAE&biw=1478&bih=708&dpr=1.3"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-teal-600 hover:text-teal-800 font-semibold"
-              >
-                Read all 113 reviews on Google{" "}
-                <ChevronRight size={20} className="ml-1" />
-              </a>
-            </div>
           </div>
         </div>
       </section>
     );
   };
 
-  // FAQ Section
   const FAQSection = () => {
     const [activeIndex, setActiveIndex] = useState(null);
 
-    const toggleFAQ = (index) => {
-      setActiveIndex(activeIndex === index ? null : index);
+    const toggleFAQ = (idx) => {
+      setActiveIndex(activeIndex === idx ? null : idx);
     };
 
-    const faqs = [
-      {
-        question: "How long does a dental implant procedure take?",
-        answer:
-          "A dental implant typically requires 2 to 3 visits over a span of 3 to 6 months. First, the implant is placed, followed by healing (osseointegration), and finally the crown placement. We use advanced techniques to ensure fast healing and long-lasting results.",
-      },
-      {
-        question: "Is root canal treatment painful?",
-        answer:
-          "No, modern root canal treatments at our clinic are virtually painless. We use local anaesthesia and advanced rotary tools to clean and seal the infected area with minimal discomfort, often completed in a single visit.",
-      },
-      {
-        question: "What cosmetic dental services do you provide?",
-        answer:
-          "We offer smile makeovers, veneers, composite bonding, teeth whitening, crowns, and reshaping. All treatments are customized based on your smile goals and facial profile to ensure natural, aesthetic results.",
-      },
-      {
-        question: "Where is your dental clinic located in Nashik?",
-        answer:
-          "We have two convenient locations: 1) Dr. Joshi, 59-60, Howson Rd, near MSEB office, Deolali Camp, Nashik. 2) Dr Joshi's Care and Cure - The Dental Wellness Clinic, Hari Amantran, 203-204, Datta Mandir Rd, near Dattamandir, Nashik Road, Nashik.",
-      },
-      {
-        question: "Do you serve areas outside Nashik Road?",
-        answer:
-          "Yes. We welcome patients from across Nashik, including Deolali, Panchavati, College Road, and Ambad MIDC.",
-      },
-      {
-        question:
-          "How can I book an appointment at Dr. Joshi's Care & Cure Dental?",
-        answer:
-          "You can call us directly, WhatsApp us, or use our online appointment form. We offer same-day and weekend slots for your convenience.",
-      },
-    ];
+    if (!faqs || faqs.length === 0) return null;
 
     return (
       <section className="py-16 bg-white">
@@ -493,22 +457,25 @@ const Home = () => {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            {faqs.map((faq, index) => (
-              <div key={index} className="mb-4 border-b border-teal-100">
+            {faqs.map((faq, idx) => (
+              <div
+                key={faq.id || idx}
+                className="mb-4 border-b border-teal-100"
+              >
                 <button
-                  className="flex justify-between items-center w-full py-4 text-left font-semibold text-gray-800 hover:text-teal-600"
-                  onClick={() => toggleFAQ(index)}
+                  className="flex justify-between items-center w-full py-4 text-left font-semibold text-gray-800 hover:text-teal-600 transition-colors"
+                  onClick={() => toggleFAQ(idx)}
                 >
                   <span>{faq.question}</span>
                   <ChevronRight
                     className={`transform transition-transform ${
-                      activeIndex === index ? "rotate-90" : ""
+                      activeIndex === idx ? "rotate-90" : ""
                     }`}
                     size={20}
                   />
                 </button>
                 <AnimatePresence>
-                  {activeIndex === index && (
+                  {activeIndex === idx && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -528,177 +495,16 @@ const Home = () => {
     );
   };
 
-  // CTA Section
-  const CTASection = () => {
-    return (
-      <section className="py-16 bg-teal-700 text-white">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row">
-            <div className="md:w-1/2 mb-10 md:mb-0">
-              <h2 className="text-3xl font-bold mb-6">
-                Book Your Appointment Today – Your Smile Deserves Expert Care
-              </h2>
-              <p className="text-xl mb-6">
-                We're here to answer your questions and help you regain your
-                smile with confidence.
-              </p>
-
-              <div className="mb-8">
-                <h3 className="text-xl font-semibold mb-4">Clinic No. 1</h3>
-                <div className="flex items-start mb-3">
-                  <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
-                  <p>
-                    Dr. Joshi, 59-60, Howson Rd, near MSEB office, Deolali Camp,
-                    Nashik, Deolali, Maharashtra 422401
-                  </p>
-                </div>
-                <div className="flex items-center mb-3">
-                  <Phone className="mr-3" size={20} />
-                  <a href="tel:02532496350" className="hover:underline">
-                    0253 249 6350
-                  </a>{" "}
-                  –{" "}
-                  <a href="tel:9021256647" className="hover:underline">
-                    9021256647
-                  </a>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="mr-3" size={20} />
-                  <p>Mon–Sat: 9:30 AM – 9:00 PM</p>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-semibold mb-4">Clinic No. 2</h3>
-                <div className="flex items-start mb-3">
-                  <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
-                  <p>
-                    Dr Joshi's Care and Cure - The Dental Wellness Clinic, Hari
-                    Amantran, 203-204, Datta Mandir Rd, near Dattamandir, Nashik
-                    Road, Nashik, Maharashtra 422101
-                  </p>
-                </div>
-                <div className="flex items-center mb-3">
-                  <Phone className="mr-3" size={20} />
-                  <a href="tel:08149049104" className="hover:underline">
-                    081490 49104
-                  </a>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="mr-3" size={20} />
-                  <p>Mon–Sat: 9:30 AM – 9:00 PM</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="md:w-1/2 md:pl-10">
-              <div className="bg-white p-8 rounded-lg shadow-lg">
-                <h3 className="text-2xl font-bold text-teal-800 mb-6">
-                  Schedule Your Visit
-                </h3>
-                <form className="space-y-4">
-                  <div>
-                    <label className="block text-gray-700 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 mb-2">
-                      Preferred Service
-                    </label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg text-gray-800">
-                      <option>Dental Implants</option>
-                      <option>Cosmetic Dentistry</option>
-                      <option>Root Canal Treatment</option>
-                      <option>Paediatric Dentistry</option>
-                      <option>Teeth Whitening</option>
-                      <option>Periodontics (Gum Treatment)</option>
-                      <option>General Checkup</option>
-                      <option>Emergency Dental Care</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 mb-2">
-                      Preferred Location
-                    </label>
-                    <select className="w-full p-3 border border-gray-300  text-gray-800 rounded-lg">
-                      <option>Deolali Camp Clinic</option>
-                      <option>Nashik Road Clinic</option>
-                    </select>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
-                  >
-                    Book Appointment
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  };
-
   return (
     <div className="homepage">
       <HeroSection />
-
-      {/* Stats Section */}
-      <section className="py-12 bg-teal-50">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="p-6">
-              <div className="text-4xl font-bold text-teal-700 mb-2">22+</div>
-              <div className="text-gray-600">Years Experience</div>
-            </div>
-            <div className="p-6">
-              <div className="text-4xl font-bold text-teal-700 mb-2">17K+</div>
-              <div className="text-gray-600">Happy Patients</div>
-            </div>
-            <div className="p-6">
-              <div className="text-4xl font-bold text-teal-700 mb-2">4.9</div>
-              <div className="text-gray-600">Google Rating</div>
-            </div>
-            <div className="p-6">
-              <div className="text-4xl font-bold text-teal-700 mb-2">113+</div>
-              <div className="text-gray-600">Reviews</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <Stats />
       <WelcomeSection />
       <ServicesSection />
       <WhyChooseUsSection />
       <TestimonialsSection />
       <FAQSection />
-      <CTASection />
+      <CTA />
     </div>
   );
 };
