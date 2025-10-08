@@ -41,7 +41,7 @@ const HeroSection = () => {
 
   useEffect(() => {
     if (!isAutoPlaying || heroContent.length <= 1) return;
-    const interval = setInterval(() => nextSlide(), 5000);
+    const interval = setInterval(() => nextSlide(), 50000);
     return () => clearInterval(interval);
   }, [currentIndex, isAutoPlaying, heroContent]);
 

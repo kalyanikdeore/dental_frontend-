@@ -18,8 +18,20 @@ import { Link } from "react-router-dom";
 import HeroSection from "./HeroSection";
 import Stats from "./Stats";
 import CTA from "./CTA";
+// import PopupHome from "../../components/PopUp/PopupHome";
+import PopupHome from "../../components/PopUp/Popuphome";
 
 const Home = () => {
+  const [showPopup, setShowPopup] = useState(false);
+
+  useEffect(() => {
+    // Show popup after 10 seconds
+    const timer = setTimeout(() => {
+      setShowPopup(true);
+    }, 7000);
+
+    return () => clearTimeout(timer);
+  }, []);
   // state hooks for each section
   const [welcome, setWelcome] = useState(null);
   const [services, setServices] = useState([]);
@@ -497,6 +509,7 @@ const Home = () => {
 
   return (
     <div className="homepage">
+      <PopupHome isOpen={showPopup} setIsOpen={setShowPopup} />
       <HeroSection />
       <Stats />
       <WelcomeSection />
