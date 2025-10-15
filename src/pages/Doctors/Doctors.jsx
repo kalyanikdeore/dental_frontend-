@@ -603,7 +603,7 @@ const DoctorModal = ({
 
           <div>
             <h4 className="text-lg font-semibold text-teal-800 mb-3">
-              Services Keywords
+              Key Services
             </h4>
             <div className="flex flex-wrap gap-2">
               {doctor.seo_keywords?.split(", ").map((keyword, index) => (

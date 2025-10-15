@@ -147,7 +147,7 @@ const DoctorCard = ({ doctor, onBookAppointment }) => {
 
               <div>
                 <h4 className="text-lg font-semibold text-blue-800 mb-3">
-                  Services Keywords
+                  Key Services
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {doctor.seoKeywords.split(", ").map((keyword, index) => (

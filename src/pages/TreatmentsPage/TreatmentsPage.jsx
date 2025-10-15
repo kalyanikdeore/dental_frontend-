@@ -21,7 +21,7 @@ import { useSEO } from "../../hooks/useSEO";
 import ClinicInfo from "../../components/ClinicInfo";
 import axiosInstance from "../../services/api";
 
-const TreatmentPage = () => {
+const TreatmentPage2 = () => {
   const navigate = useNavigate();
   const [activeFAQ, setActiveFAQ] = useState(null);
   const [treatment, setTreatment] = useState(null);
@@ -33,6 +33,39 @@ const TreatmentPage = () => {
   const pathParts = location.pathname.split("/");
   const treatmentSlug = pathParts[pathParts.length - 1];
 
+  useEffect(() => {
+    const fetchTreatmentData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch treatment data
+        const response = await axiosInstance.get(
+          `/treatments/${treatmentSlug}`
+        );
+
+        if (response.data.success) {
+          const treatmentData = response.data.data;
+          setTreatment(treatmentData);
+        } else {
+          throw new Error("Failed to fetch treatment data");
+        }
+      } catch (error) {
+        console.error("Error fetching treatment:", error);
+        setError(
+          error.response?.data?.message ||
+            error.message ||
+            "Failed to load treatment information"
+        );
+        setTreatment(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTreatmentData();
+  }, [treatmentSlug]);
+
   // Use dynamic SEO data from backend
   useSEO(
     treatment?.meta || {
@@ -42,33 +75,6 @@ const TreatmentPage = () => {
       url: treatment?.meta_url || location.pathname,
     }
   );
-
-  useEffect(() => {
-    const fetchTreatmentData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await axiosInstance.get(
-          `/treatments/${treatmentSlug}`
-        );
-
-        if (response.data.success) {
-          setTreatment(response.data.data);
-        } else {
-          throw new Error("Failed to fetch treatment data");
-        }
-      } catch (error) {
-        console.error("Error fetching treatment:", error);
-        setError("Failed to load treatment information");
-        setTreatment(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTreatmentData();
-  }, [treatmentSlug]);
 
   const toggleFAQ = (index) => {
     setActiveFAQ(activeFAQ === index ? null : index);
@@ -85,10 +91,39 @@ const TreatmentPage = () => {
       Heart: Heart,
       Clock: Clock,
       Calendar: Calendar,
+      "fa-check": CheckCircle,
+      asdas: CheckCircle,
       default: CheckCircle,
     };
 
     return iconMap[iconName] || iconMap.default;
+  };
+
+  // Handle appointment booking
+  const handleBookAppointment = () => {
+    navigate("/contact", {
+      state: {
+        treatment: treatment?.h1,
+        treatmentSlug: treatmentSlug,
+      },
+    });
+  };
+
+  // Handle WhatsApp click
+  const handleWhatsAppClick = () => {
+    const phoneNumber = "+919021256647";
+    const message = `Hello, I would like to book an appointment for ${
+      treatment?.h1 || "dental treatment"
+    }`;
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+      message
+    )}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
+  // Handle phone call
+  const handlePhoneClick = (phoneNumber) => {
+    window.location.href = `tel:${phoneNumber}`;
   };
 
   if (loading) {
@@ -124,6 +159,14 @@ const TreatmentPage = () => {
             <p className="text-gray-600 mb-6">
               {error || "The requested treatment could not be found."}
             </p>
+            <div className="mb-4 p-4 bg-gray-100 rounded-lg">
+              <p className="text-sm text-gray-700">
+                Slug used:{" "}
+                <code className="bg-gray-200 px-1 rounded">
+                  {treatmentSlug}
+                </code>
+              </p>
+            </div>
             <button
               onClick={() => navigate("/")}
               className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
@@ -136,7 +179,20 @@ const TreatmentPage = () => {
     );
   }
 
-  const { h1, intro, hero_image, sections, faqs, whyChooseItems } = treatment;
+  // Use the correct property names from your API response
+  const {
+    h1,
+    intro,
+    hero_image,
+    sections = [],
+    faqs = [],
+    why_choose_items = [],
+    appointments = [],
+  } = treatment;
+
+  // Get appointment data from the first appointment or use defaults
+  const appointmentData =
+    appointments && appointments.length > 0 ? appointments[0] : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 overflow-hidden">
@@ -168,7 +224,7 @@ const TreatmentPage = () => {
                 <motion.button
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate("/contact")}
+                  onClick={handleBookAppointment}
                   className="bg-gradient-to-r from-teal-600 to-blue-600 text-white font-semibold py-4 px-8 rounded-full hover:shadow-lg transition-all duration-300 flex items-center"
                 >
                   Book Consultation
@@ -179,34 +235,11 @@ const TreatmentPage = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="flex items-center text-gray-700 font-medium py-4 px-6 hover:text-teal-600 transition-colors"
+                  onClick={handleWhatsAppClick}
                 >
-                  <PlayCircle className="mr-2 text-teal-600" size={20} />
-                  Watch Procedure
+                  <MessageCircle className="mr-2" size={20} />
+                  Chat on WhatsApp
                 </motion.button>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-6 mt-12 max-w-md">
-                {[
-                  { number: "19+", label: "Years Experience" },
-                  { number: "13K+", label: "Happy Patients" },
-                  { number: "4.9/5", label: "Google Rating" },
-                ].map((stat, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + index * 0.1 }}
-                    className="text-center"
-                  >
-                    <div className="text-2xl font-bold text-teal-600">
-                      {stat.number}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                ))}
               </div>
             </motion.div>
 
@@ -229,6 +262,9 @@ const TreatmentPage = () => {
                   }
                   alt={h1}
                   className="w-full h-96 object-cover"
+                  onError={(e) => {
+                    e.target.src = "/images/default-treatment.jpg";
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
@@ -274,151 +310,226 @@ const TreatmentPage = () => {
               ))}
 
               {/* FAQ Section */}
-              <motion.section
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="mb-16"
-              >
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                    Frequently Asked Questions
-                  </h2>
-                  <p className="text-gray-600">
-                    Get answers to common questions about your treatment
-                  </p>
-                </div>
+              {faqs && faqs.length > 0 && (
+                <motion.section
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 }}
+                  className="mb-16"
+                >
+                  <div className="text-center mb-12">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                      Frequently Asked Questions
+                    </h2>
+                    <p className="text-gray-600">
+                      Get answers to common questions about your treatment
+                    </p>
+                  </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  {faqs?.map((faq, index) => (
-                    <motion.div
-                      key={faq.id || index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.9 + index * 0.1 }}
-                      className="group"
-                    >
-                      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 group-hover:border-teal-200 transition-all duration-300 h-full">
-                        <button
-                          className="w-full text-left"
-                          onClick={() => toggleFAQ(index)}
-                        >
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold text-gray-800 text-lg pr-4">
-                              {faq.question}
-                            </h3>
-                            <ChevronDown
-                              className={`transition-transform duration-300 text-teal-600 ${
-                                activeFAQ === index ? "rotate-180" : ""
-                              }`}
-                              size={20}
-                            />
-                          </div>
-                        </button>
-                        <AnimatePresence>
-                          {activeFAQ === index && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="pt-4 border-t border-gray-100">
-                                <div
-                                  className="text-gray-600 leading-relaxed"
-                                  dangerouslySetInnerHTML={{
-                                    __html: faq.answer,
-                                  }}
-                                />
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.section>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {faqs.map((faq, index) => (
+                      <motion.div
+                        key={faq.id || index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.9 + index * 0.1 }}
+                        className="group"
+                      >
+                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 group-hover:border-teal-200 transition-all duration-300 h-full">
+                          <button
+                            className="w-full text-left"
+                            onClick={() => toggleFAQ(index)}
+                          >
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="font-semibold text-gray-800 text-lg pr-4">
+                                {faq.question || "Question"}
+                              </h3>
+                              <ChevronDown
+                                className={`transition-transform duration-300 text-teal-600 ${
+                                  activeFAQ === index ? "rotate-180" : ""
+                                }`}
+                                size={20}
+                              />
+                            </div>
+                          </button>
+                          <AnimatePresence>
+                            {activeFAQ === index && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pt-4 border-t border-gray-100">
+                                  <div
+                                    className="text-gray-600 leading-relaxed"
+                                    dangerouslySetInnerHTML={{
+                                      __html:
+                                        faq.answer || "Answer not available",
+                                    }}
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.section>
+              )}
             </div>
 
             {/* Sidebar */}
             <div className="w-full lg:w-1/3">
-              {/* Consultation Card */}
+              {/* Consultation Card - Fixed appointment section */}
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
                 className="sticky top-6"
               >
+                {/* Appointment Section */}
                 <div className="bg-gradient-to-br from-white to-teal-50/30 backdrop-blur-sm rounded-3xl p-8 mb-8 border border-white/50">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                      Book Your Appointment
+                      {appointmentData?.name || "Book Your Appointment"}
                     </h3>
+                    <p className="text-gray-600 text-sm">
+                      {appointmentData?.booking_description ||
+                        "Schedule your dental consultation today"}
+                    </p>
                   </div>
 
                   <div className="space-y-6 mb-8">
-                    {[
-                      { icon: Clock, text: "Mon - Sat: 9:30 AM - 9:00 PM" },
-                      {
-                        icon: Phone,
-                        text: "+91 90212 56647",
-                        subtext: "Deolali Camp",
-                      },
-                      {
-                        icon: Phone,
-                        text: "+91 81490 49104",
-                        subtext: "Nashik Road",
-                      },
-                      { icon: MessageCircle, text: "WhatsApp Available" },
-                    ].map((item, index) => (
+                    {/* Working Hours */}
+                    <div
+                      className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                      onClick={() => navigate("/contact")}
+                    >
+                      <Clock className="text-teal-600 mr-4" size={24} />
+                      <div>
+                        {/* <p className="font-semibold text-gray-800">
+                          Mon - Sat: 9:30 AM - 9:00 PM
+                        </p> */}
+                        <p className="text-sm text-gray-500">
+                          {appointmentData?.preferred_date &&
+                          appointmentData?.preferred_time
+                            ? `Preferred: ${appointmentData.preferred_date} at ${appointmentData.preferred_time}`
+                            : "Flexible timing available"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Phone Numbers */}
+                    {appointmentData?.deolali_phone && (
                       <div
-                        key={index}
-                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50"
+                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                        onClick={() =>
+                          handlePhoneClick(
+                            appointmentData.deolali_phone.replace(/\s/g, "")
+                          )
+                        }
                       >
-                        <item.icon className="text-teal-600 mr-4" size={24} />
+                        <Phone className="text-teal-600 mr-4" size={24} />
                         <div>
                           <p className="font-semibold text-gray-800">
-                            {item.text}
+                            {appointmentData.deolali_phone}
                           </p>
-                          {item.subtext && (
-                            <p className="text-sm text-gray-500">
-                              {item.subtext}
-                            </p>
-                          )}
+                          <p className="text-sm text-gray-500">Deolali Camp</p>
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {appointmentData?.nashik_phone && (
+                      <div
+                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                        onClick={() =>
+                          handlePhoneClick(
+                            appointmentData.nashik_phone.replace(/\s/g, "")
+                          )
+                        }
+                      >
+                        <Phone className="text-teal-600 mr-4" size={24} />
+                        <div>
+                          <p className="font-semibold text-gray-800">
+                            {appointmentData.nashik_phone}
+                          </p>
+                          <p className="text-sm text-gray-500">Nashik Road</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback phone numbers if no appointment data */}
+                    {!appointmentData && (
+                      <>
+                        <div
+                          className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                          onClick={() => handlePhoneClick("+919021256647")}
+                        >
+                          <Phone className="text-teal-600 mr-4" size={24} />
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              +91 90212 56647
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Deolali Camp
+                            </p>
+                          </div>
+                        </div>
+                        <div
+                          className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                          onClick={() => handlePhoneClick("+918149049104")}
+                        >
+                          <Phone className="text-teal-600 mr-4" size={24} />
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              +91 81490 49104
+                            </p>
+                            <p className="text-sm text-gray-500">Nashik Road</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* WhatsApp */}
+                    <div className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors">
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          WhatsApp Available
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <motion.button
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate("/contact")}
+                    onClick={handleBookAppointment}
                     className="w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white font-bold py-4 px-6 rounded-2xl hover:shadow-lg transition-all duration-300 text-lg"
                   >
-                    Book Appointment Now
+                    {appointmentData?.button_text || "Book Appointment Now"}
                   </motion.button>
                 </div>
 
                 {/* Why Choose Us Section */}
-                <motion.div
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="bg-gradient-to-br from-teal-600 to-blue-700 rounded-3xl p-8 text-white"
-                >
-                  <div className="text-center mb-8">
-                    <h3 className="text-2xl font-bold mb-2">Why Choose Us</h3>
-                    <p className="text-teal-100">
-                      Experience the difference in dental care
-                    </p>
-                  </div>
+                {why_choose_items && why_choose_items.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 }}
+                    className="bg-gradient-to-br from-teal-600 to-blue-700 rounded-3xl p-8 text-white"
+                  >
+                    <div className="text-center mb-8">
+                      <h3 className="text-2xl font-bold mb-2">Why Choose Us</h3>
+                      <p className="text-teal-100">
+                        Experience the difference in dental care
+                      </p>
+                    </div>
 
-                  <div className="space-y-6">
-                    {whyChooseItems && whyChooseItems.length > 0 ? (
-                      whyChooseItems.map((item, index) => {
+                    <div className="space-y-6">
+                      {why_choose_items.map((item, index) => {
                         const IconComponent = getIconComponent(item.icon);
                         return (
                           <motion.div
@@ -435,25 +546,19 @@ const TreatmentPage = () => {
                             />
                             <div>
                               <h4 className="font-semibold text-lg mb-1">
-                                {item.title}
+                                {item.title || "Feature"}
                               </h4>
                               <p className="text-teal-100 text-sm leading-relaxed">
-                                {item.description}
+                                {item.description ||
+                                  "Description not available"}
                               </p>
                             </div>
                           </motion.div>
                         );
-                      })
-                    ) : (
-                      // Fallback content if no whyChooseItems are available
-                      <div className="text-center py-4">
-                        <p className="text-teal-200">
-                          Premium dental care features
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
+                      })}
+                    </div>
+                  </motion.div>
+                )}
               </motion.div>
             </div>
           </div>
@@ -468,8 +573,16 @@ const TreatmentPage = () => {
 
 // Section Component
 const Section = ({ section, index }) => {
-  const { h2, content, list_items, subsections, ordered_list, note, image } =
-    section;
+  const {
+    h2 = "Section Title",
+    content,
+    list_items = [],
+    list_title,
+    subsections = [],
+    ordered_list = [],
+    note,
+    image,
+  } = section;
 
   return (
     <motion.section
@@ -502,6 +615,9 @@ const Section = ({ section, index }) => {
                 }
                 alt={h2}
                 className="w-full h-80 object-cover"
+                onError={(e) => {
+                  e.target.src = "/images/default-section.jpg";
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
 
@@ -517,7 +633,7 @@ const Section = ({ section, index }) => {
 
         {/* Content Side */}
         <div className={image ? "lg:w-1/2" : "w-full"}>
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-white/50">
+          <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/50">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">{h2}</h2>
 
             {content && (
@@ -526,6 +642,11 @@ const Section = ({ section, index }) => {
 
             {list_items && list_items.length > 0 && (
               <div className="mb-6">
+                {list_title && (
+                  <h4 className="font-semibold text-gray-700 mb-3">
+                    {list_title}
+                  </h4>
+                )}
                 <div className="grid gap-3">
                   {list_items.map((item, i) => (
                     <motion.div
@@ -537,7 +658,7 @@ const Section = ({ section, index }) => {
                         className="text-teal-500 mr-3 flex-shrink-0"
                         size={18}
                       />
-                      <span>{item.item}</span>
+                      <span>{typeof item === "object" ? item.item : item}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -553,10 +674,10 @@ const Section = ({ section, index }) => {
                     className="bg-teal-50/50 p-4 rounded-xl border border-teal-100"
                   >
                     <h3 className="font-semibold text-teal-700 mb-2">
-                      {subsection.h3}
+                      {subsection.h3 || "Subsection"}
                     </h3>
                     <p className="text-gray-600 text-sm">
-                      {subsection.content}
+                      {subsection.content || "Content not available"}
                     </p>
                   </motion.div>
                 ))}
@@ -573,10 +694,10 @@ const Section = ({ section, index }) => {
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-800">
-                          {item.title}
+                          {item.title || `Step ${i + 1}`}
                         </h4>
                         <p className="text-gray-600 text-sm mt-1">
-                          {item.description}
+                          {item.description || "Description not available"}
                         </p>
                       </div>
                     </div>
@@ -602,4 +723,4 @@ const Section = ({ section, index }) => {
   );
 };
 
-export default TreatmentPage;
+export default TreatmentPage2;

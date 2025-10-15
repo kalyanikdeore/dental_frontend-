@@ -12,17 +12,27 @@ import {
   MapPin,
 } from "lucide-react";
 import { TbDental, TbSparkles } from "react-icons/tb";
-import { FaTooth, FaChild } from "react-icons/fa";
+import {
+  FaTooth,
+  FaChild,
+  FaTeeth,
+  FaTeethOpen,
+  FaHeartbeat,
+} from "react-icons/fa";
 import { LuHeartPulse } from "react-icons/lu";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Added useNavigate here
 import HeroSection from "./HeroSection";
 import Stats from "./Stats";
 import CTA from "./CTA";
-// import PopupHome from "../../components/PopUp/PopupHome";
-import PopupHome from "../../components/PopUp/Popuphome";
+// import PopupHome from "../../../../Static/careandcurenasik/src/components/PopUp/PopupHome";
+
+// Base URL configuration
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const Home = () => {
   const [showPopup, setShowPopup] = useState(false);
+  const navigate = useNavigate(); // Moved useNavigate here
 
   useEffect(() => {
     // Show popup after 10 seconds
@@ -32,6 +42,7 @@ const Home = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
   // state hooks for each section
   const [welcome, setWelcome] = useState(null);
   const [services, setServices] = useState([]);
@@ -70,6 +81,24 @@ const Home = () => {
     fetchAll();
   }, []);
 
+  // Helper function to get full image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+
+    // If it's already a full URL, return as is
+    if (imagePath.startsWith("http")) {
+      return imagePath;
+    }
+
+    // If it starts with uploads/, construct the full URL
+    if (imagePath.startsWith("uploads/")) {
+      return `${API_BASE_URL}/${imagePath}`;
+    }
+
+    // For other cases, assume it's relative to uploads directory
+    return `${API_BASE_URL}/uploads/${imagePath}`;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-32">
@@ -98,68 +127,116 @@ const Home = () => {
   const WelcomeSection = () => {
     if (!welcome) return null;
 
+    // Get dynamic image URLs
+    const image1Url = getImageUrl(welcome.image_1);
+    const image2Url = getImageUrl(welcome.image_2);
+    const image3Url = getImageUrl(welcome.image_3);
+
     return (
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center">
-            <div className="md:w-1/2 mb-10 md:mb-0">
-              <h2 className="text-3xl font-extrabold text-[#0a8583] mb-6">
-                {welcome.title || "Welcome to Our Dental Clinic"}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+            {/* Content Section */}
+            <div className="lg:w-1/2">
+              <h2 className="text-4xl font-bold text-[#0a8583] mb-6 leading-tight">
+                {welcome?.title || "Welcome to Our Dental Clinic"}
               </h2>
-              <p className="text-gray-600 mb-6">
-                {welcome.description || "Your trusted partner in dental care."}
+
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                {welcome?.description ||
+                  "Your trusted partner in dental care. We provide comprehensive dental services with the latest technology and compassionate care."}
               </p>
 
-              {welcome.highlights &&
+              {welcome?.highlights &&
                 Array.isArray(welcome.highlights) &&
                 welcome.highlights.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     {welcome.highlights.map((hl, idx) => (
                       <div key={idx} className="flex items-center">
                         <CheckCircle2
-                          className="text-teal-600 mr-2"
-                          size={20}
+                          className="text-teal-600 mr-3 flex-shrink-0"
+                          size={22}
                         />
-                        <span className="text-gray-700">{hl}</span>
+                        <span className="text-gray-700 text-base">{hl}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
-              {welcome.cta_text && welcome.cta_link && (
+              {welcome?.cta_text && welcome?.cta_link && (
                 <Link
                   to={welcome.cta_link}
-                  className="inline-flex items-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                  className="inline-flex items-center bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 hover:shadow-lg"
                 >
                   {welcome.cta_text}
-                  <ChevronRight size={20} className="ml-1" />
+                  <ChevronRight size={20} className="ml-2" />
                 </Link>
               )}
             </div>
-            <div className="md:w-1/2 flex justify-center">
-              {welcome.image_url ? (
-                <img
-                  src={welcome.image_url}
-                  alt={welcome.title || "Welcome"}
-                  className="rounded-lg shadow-lg max-w-md w-full h-auto"
-                />
-              ) : (
-                <div className="relative w-full max-w-md">
-                  <div className="bg-teal-100 h-80 w-64 absolute -bottom-4 -left-4 rounded-lg"></div>
-                  <div className="bg-teal-200 h-80 w-64 absolute -top-4 -right-4 rounded-lg"></div>
-                  <div className="relative bg-white p-6 rounded-lg shadow-lg border border-teal-100 h-80 w-64 flex flex-col items-center justify-center">
-                    <Users className="text-teal-600 mx-auto mb-4" size={48} />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2 text-center">
-                      {services.length > 0 ? services[0].title : "Our Services"}
-                    </h3>
-                    <p className="text-gray-600 text-center">
-                      {services.length > 0
-                        ? services[0].description
-                        : "Professional dental care for you and your family"}
-                    </p>
+
+            {/* Images Grid Section */}
+            <div className="lg:w-1/2">
+              <div className="grid grid-cols-2 gap-4 md:gap-6">
+                {/* Top Left Image */}
+                <div className="col-span-1">
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    {image1Url ? (
+                      <img
+                        src={image1Url}
+                        alt="Welcome section image 1"
+                        className="w-full h-64 md:h-72 object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-64 md:h-72 bg-gray-200 flex items-center justify-center rounded-2xl">
+                        <span className="text-gray-500">Image 1</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {/* Top Right Image */}
+                <div className="col-span-1">
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 mt-8">
+                    {image2Url ? (
+                      <img
+                        src={image2Url}
+                        alt="Welcome section image 2"
+                        className="w-full h-64 md:h-72 object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-64 md:h-72 bg-gray-200 flex items-center justify-center rounded-2xl">
+                        <span className="text-gray-500">Image 2</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom Full Width Image */}
+                <div className="col-span-2">
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    {image3Url ? (
+                      <img
+                        src={image3Url}
+                        alt="Welcome section image 3"
+                        className="w-full h-60 md:h-64 object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-60 md:h-64 bg-gray-200 flex items-center justify-center rounded-2xl">
+                        <span className="text-gray-500">Image 3</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -168,7 +245,15 @@ const Home = () => {
   };
 
   const ServicesSection = () => {
+    // Removed useNavigate from here and using the one from parent scope
+
     if (!services || services.length === 0) return null;
+
+    // Function to handle Learn More click
+    const handleLearnMore = (service) => {
+      // Navigate to treatment page with service slug using navigate from parent
+      navigate(`/treatments/${service.slug}`);
+    };
 
     return (
       <section className="py-16 bg-teal-50">
@@ -196,12 +281,25 @@ const Home = () => {
                 case "FaTooth":
                   iconComp = <FaTooth size={32} className="text-teal-600" />;
                   break;
+                case "FaTeeth":
+                  iconComp = <FaTeeth size={32} className="text-teal-600" />;
+                  break;
+                case "FaTeethOpen":
+                  iconComp = (
+                    <FaTeethOpen size={32} className="text-teal-600" />
+                  );
+                  break;
                 case "FaChild":
                   iconComp = <FaChild size={32} className="text-teal-600" />;
                   break;
                 case "LuHeartPulse":
                   iconComp = (
                     <LuHeartPulse size={32} className="text-teal-600" />
+                  );
+                  break;
+                case "FaHeartbeat":
+                  iconComp = (
+                    <FaHeartbeat size={32} className="text-teal-600" />
                   );
                   break;
                 case "Users":
@@ -225,13 +323,15 @@ const Home = () => {
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
                     {svc.title}
                   </h3>
-                  <p className="text-gray-600 mb-4">{svc.description}</p>
-                  <Link
-                    to={svc.path || "/services"}
+                  <p className="text-gray-600 mb-4">
+                    {svc.short_description || svc.description}
+                  </p>
+                  <button
+                    onClick={() => handleLearnMore(svc)}
                     className="text-teal-600 hover:text-teal-800 font-medium flex items-center"
                   >
                     Learn more <ChevronRight size={16} className="ml-1" />
-                  </Link>
+                  </button>
                 </motion.div>
               );
             })}
@@ -291,6 +391,14 @@ const Home = () => {
                   break;
                 case "TbDental":
                   iconComp = <TbDental size={24} className="text-teal-600" />;
+                  break;
+                case "FaTeeth":
+                  iconComp = <FaTeeth size={24} className="text-teal-600" />;
+                  break;
+                case "FaHeartbeat":
+                  iconComp = (
+                    <FaHeartbeat size={24} className="text-teal-600" />
+                  );
                   break;
                 default:
                   iconComp = <Users size={24} className="text-teal-600" />;
@@ -442,6 +550,19 @@ const Home = () => {
               ))}
             </div>
           </div>
+
+          {/* Google Reviews Link */}
+          <div className="text-center mt-12">
+            <a
+              href="https://www.google.com/search?sca_esv=e126eb4d051b0442&hl=en-IN&sxsrf=AE3TifNr_Dtdbla7hIZPea5IYv8ZDv9R2w:1757507049932&si=AMgyJEvkVjFQtirYNBhM3ZJIRTaSJ6PxY6y1_6WZHGInbzDnMYoQmT4ohuML6aQ2PsEJljXCqJtIR5FaZP8LvlO3lHcOmmVTAnZMmofty28cA7GXa_gdxY2ompeOKMyZBQp2esPbePTO5knQp1Wfb43CWHjUKjtwXwUwiOOFEGTjDwRl6Wqtqpo%3D&q=Dr.+Joshi%27s+Care+%26+Cure+Dental+Clinic+Reviews&sa=X&ved=2ahUKEwiw7Zr7l86PAxVB2DgGHcRVO44Q0bkNegQIJhAE&biw=1478&bih=708&dpr=1.3"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center  text-teal-600 font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
+              Read all 113 reviews on Google{" "}
+              <ChevronRight size={20} className="ml-1" />
+            </a>
+          </div>
         </div>
       </section>
     );
@@ -509,7 +630,7 @@ const Home = () => {
 
   return (
     <div className="homepage">
-      <PopupHome isOpen={showPopup} setIsOpen={setShowPopup} />
+      {/* <PopupHome isOpen={showPopup} setIsOpen={setShowPopup} /> */}
       <HeroSection />
       <Stats />
       <WelcomeSection />

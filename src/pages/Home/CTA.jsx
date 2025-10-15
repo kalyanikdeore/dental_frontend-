@@ -1,133 +1,382 @@
-import React from "react";
-import { MapPin, Phone, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { MapPin, Phone, Clock, Calendar } from "lucide-react";
+import axiosInstance from "../../services/api";
+
+const serviceOptions = [
+  "Dental Implants",
+  "Cosmetic Dentistry",
+  "Root Canal Treatment",
+  "Paediatric Dentistry",
+  "Teeth Whitening",
+  "Periodontics (Gum Treatment)",
+  "General Checkup",
+  "Emergency Dental Care",
+];
 
 const CTASection = () => {
-  return (
-    <section className="py-16 bg-teal-700 text-white">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row">
-          <div className="md:w-1/2 mb-10 md:mb-0">
-            <h2 className="text-3xl font-bold mb-6">
-              Book Your Appointment Today – Your Smile Deserves Expert Care
-            </h2>
-            <p className="text-xl mb-6">
-              We're here to answer your questions and help you regain your smile
-              with confidence.
-            </p>
+  const [ctaData, setCtaData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitStatus, setSubmitStatus] = useState(null);
 
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4">Clinic No. 1</h3>
-              <div className="flex items-start mb-3">
-                <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
-                <p>
-                  Dr. Joshi, 59-60, Howson Rd, near MSEB office, Deolali Camp,
-                  Nashik, Deolali, Maharashtra 422401
-                </p>
-              </div>
-              <div className="flex items-center mb-3">
-                <Phone className="mr-3" size={20} />
-                <a href="tel:02532496350" className="hover:underline">
-                  0253 249 6350
-                </a>{" "}
-                –{" "}
-                <a href="tel:9021256647" className="hover:underline">
-                  9021256647
+  // Form data
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    preferred_service: "Dental Implants",
+    preferred_date: "",
+    preferred_clinic: "",
+    message: "",
+  });
+
+  // Fetch CTA Data
+  useEffect(() => {
+    const fetchCtaData = async () => {
+      try {
+        setLoading(true);
+        const response = await axiosInstance.get("/cta");
+
+        if (response.data.success && response.data.data) {
+          const data = Array.isArray(response.data.data)
+            ? response.data.data[0]
+            : response.data.data;
+          setCtaData(data);
+          setFormData((prev) => ({
+            ...prev,
+            preferred_clinic: data.clinic1_name || "Deolali Camp Clinic",
+          }));
+        } else {
+          throw new Error(response.data.message || "Failed to load CTA data");
+        }
+      } catch (err) {
+        console.error("❌ Error fetching CTA data:", err);
+        setError(err.message || "Error fetching CTA data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCtaData();
+  }, []);
+
+  // Format phone
+  const formatPhoneNumber = (phone) => {
+    if (!phone) return "";
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length === 10)
+      return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3");
+    return phone;
+  };
+
+  // Get today's date
+  const getTodayDate = () => new Date().toISOString().split("T")[0];
+
+  // Form handlers
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Submit appointment
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitStatus("sending");
+    setError(null);
+
+    try {
+      if (!formData.name.trim() || !formData.phone.trim()) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      const response = await axiosInstance.post("/book-appointment", formData);
+
+      if (response.status === 201 || response.status === 200) {
+        setSubmitStatus("success");
+        setFormData({
+          name: "",
+          phone: "",
+          preferred_service: "Dental Implants",
+          preferred_date: "",
+          preferred_clinic: ctaData?.clinic1_name || "Deolali Camp Clinic",
+          message: "",
+        });
+      } else {
+        throw new Error("Failed to book appointment");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setSubmitStatus("error");
+
+      if (error.response?.status === 419) {
+        setError("Session expired. Please refresh the page.");
+      } else if (error.response?.status === 422) {
+        const errors = error.response.data.errors;
+        const msg = Object.values(errors).flat().join(", ");
+        setError(`Please check your form: ${msg}`);
+      } else {
+        setError(error.message || "An error occurred while submitting.");
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-gray-200 animate-pulse">
+        <div className="container mx-auto px-4 text-center">
+          <h3 className="text-lg text-gray-600">Loading contact info...</h3>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16 bg-red-50">
+        <div className="container mx-auto px-4 text-center">
+          <h3 className="text-xl font-semibold text-red-700 mb-4">
+            Failed to load data
+          </h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (!ctaData) {
+    return (
+      <section className="py-16 bg-gray-100 text-center">
+        <p>No contact information available right now.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={`py-16 ${ctaData.background_color} ${ctaData.text_color}`}
+    >
+      <div className="container mx-auto px-4 flex flex-col md:flex-row">
+        {/* Left Info Section */}
+        <div className="md:w-1/2 mb-10 md:mb-0">
+          <h2 className="text-3xl font-bold mb-6">{ctaData.title}</h2>
+          <p className="text-xl mb-6">{ctaData.description}</p>
+
+          {/* Deolali Camp Clinic */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">Deolali Camp Clinic</h3>
+            <div className="flex items-start mb-3">
+              <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
+              <p>{ctaData.clinic1_address}</p>
+            </div>
+            <div className="flex items-center mb-3">
+              <Phone className="mr-3" size={20} />
+              <div className="flex items-center space-x-2">
+                <a
+                  href={`tel:${ctaData.clinic1_phone1}`}
+                  className="hover:underline"
+                >
+                  {formatPhoneNumber(ctaData.clinic1_phone1)}
                 </a>
-              </div>
-              <div className="flex items-center">
-                <Clock className="mr-3" size={20} />
-                <p>Mon–Sat: 9:30 AM – 9:00 PM</p>
+                {ctaData.clinic1_phone2 && (
+                  <>
+                    <span>–</span>
+                    <a
+                      href={`tel:${ctaData.clinic1_phone2}`}
+                      className="hover:underline"
+                    >
+                      {formatPhoneNumber(ctaData.clinic1_phone2)}
+                    </a>
+                  </>
+                )}
               </div>
             </div>
-
-            <div>
-              <h3 className="text-xl font-semibold mb-4">Clinic No. 2</h3>
-              <div className="flex items-start mb-3">
-                <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
-                <p>
-                  Dr Joshi's Care and Cure - The Dental Wellness Clinic, Hari
-                  Amantran, 203-204, Datta Mandir Rd, near Dattamandir, Nashik
-                  Road, Nashik, Maharashtra 422101
-                </p>
-              </div>
-              <div className="flex items-center mb-3">
-                <Phone className="mr-3" size={20} />
-                <a href="tel:08149049104" className="hover:underline">
-                  081490 49104
-                </a>
-              </div>
-              <div className="flex items-center">
-                <Clock className="mr-3" size={20} />
-                <p>Mon–Sat: 9:30 AM – 9:00 PM</p>
-              </div>
+            <div className="flex items-center">
+              <Clock className="mr-3" size={20} />
+              <p>{ctaData.clinic1_hours}</p>
             </div>
           </div>
 
-          <div className="md:w-1/2 md:pl-10">
-            <div className="bg-white p-8 rounded-lg shadow-lg">
-              <h3 className="text-2xl font-bold text-teal-800 mb-6">
-                Schedule Your Visit
-              </h3>
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    className="w-full p-3 border border-gray-300 rounded-lg"
-                    required
-                  />
-                </div>
+          {/* Nashik Road Clinic */}
+          <div>
+            <h3 className="text-xl font-semibold mb-4">Nashik Road Clinic</h3>
+            <div className="flex items-start mb-3">
+              <MapPin className="mr-3 mt-1 flex-shrink-0" size={20} />
+              <p>{ctaData.clinic2_address}</p>
+            </div>
+            <div className="flex items-center mb-3">
+              <Phone className="mr-3" size={20} />
+              <div className="flex items-center space-x-2">
+                <a
+                  href={`tel:${ctaData.clinic2_phone1}`}
+                  className="hover:underline"
+                >
+                  {formatPhoneNumber(ctaData.clinic2_phone1)}
+                </a>
+                {ctaData.clinic2_phone2 && (
+                  <>
+                    <span>–</span>
+                    <a
+                      href={`tel:${ctaData.clinic2_phone2}`}
+                      className="hover:underline"
+                    >
+                      {formatPhoneNumber(ctaData.clinic2_phone2)}
+                    </a>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center">
+              <Clock className="mr-3" size={20} />
+              <p>{ctaData.clinic2_hours}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Appointment Form */}
+        <div className="md:w-1/2 md:pl-10">
+          <div className="bg-white p-8 rounded-lg shadow-lg">
+            <h3 className="text-2xl font-bold text-teal-800 mb-6">
+              Book an Appointment
+            </h3>
+
+            {submitStatus === "success" ? (
+              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center">
+                <p className="text-teal-700 font-semibold mb-2">
+                  Thank you! Your appointment has been submitted.
+                </p>
+                <button
+                  onClick={() => setSubmitStatus(null)}
+                  className="mt-3 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition"
+                >
+                  Book Another
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-gray-700 mb-2">
-                    Phone Number
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-3  text-gray-700  border  border-gray-300 rounded-md"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-2">
+                    Phone Number *
                   </label>
                   <input
                     type="tel"
-                    className="w-full p-3 border border-gray-300 rounded-lg"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
                     required
+                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md"
+                    placeholder="Enter your phone number"
                   />
                 </div>
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    className="w-full p-3 border border-gray-300 rounded-lg"
-                  />
-                </div>
+
                 <div>
                   <label className="block text-gray-700 mb-2">
                     Preferred Service
                   </label>
-                  <select className="w-full p-3 border border-gray-300 rounded-lg text-gray-800">
-                    <option>Dental Implants</option>
-                    <option>Cosmetic Dentistry</option>
-                    <option>Root Canal Treatment</option>
-                    <option>Paediatric Dentistry</option>
-                    <option>Teeth Whitening</option>
-                    <option>Periodontics (Gum Treatment)</option>
-                    <option>General Checkup</option>
-                    <option>Emergency Dental Care</option>
+                  <select
+                    name="preferred_service"
+                    value={formData.preferred_service}
+                    onChange={handleChange}
+                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md text-gray-800"
+                  >
+                    {serviceOptions.map((service) => (
+                      <option key={service} value={service}>
+                        {service}
+                      </option>
+                    ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-gray-700 mb-2">
-                    Preferred Location
+                    Preferred Date
                   </label>
-                  <select className="w-full p-3 border border-gray-300 text-gray-800 rounded-lg">
-                    <option>Deolali Camp Clinic</option>
-                    <option>Nashik Road Clinic</option>
+                  <input
+                    type="date"
+                    name="preferred_date"
+                    value={formData.preferred_date}
+                    onChange={handleChange}
+                    min={getTodayDate()}
+                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-2">
+                    Preferred Clinic
+                  </label>
+                  <select
+                    name="preferred_clinic"
+                    value={formData.preferred_clinic}
+                    onChange={handleChange}
+                    className="w-full p-3 border text-gray-700  border-gray-300 rounded-md"
+                  >
+                    <option value="Deolali Camp Clinic">
+                      Deolali Camp Clinic
+                    </option>
+                    <option value="Nashik Road Clinic">
+                      Nashik Road Clinic
+                    </option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-2">Message</label>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Any specific concerns..."
+                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md"
+                  ></textarea>
+                </div>
+
+                {error && (
+                  <p className="text-red-600 text-sm font-medium">{error}</p>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                  disabled={submitStatus === "sending"}
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition flex justify-center items-center disabled:opacity-70"
                 >
-                  Book Appointment
+                  {submitStatus === "sending" ? (
+                    <>
+                      <div className="animate-spin h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar size={18} className="mr-2" />
+                      Book Appointment
+                    </>
+                  )}
                 </button>
               </form>
-            </div>
+            )}
           </div>
         </div>
       </div>

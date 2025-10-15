@@ -1,6 +1,9 @@
 import drLogo from "./drlogo.jpeg";
 import videoHero from "./hero/herovideo.mp4";
-
+import dental from "./doctors/dental.jpg";
+import about1 from "./doctors/about1.png";
+import about2 from "./doctors/about2.jpg";
+import about3 from "./doctors/about3.png";
 import doctorDiptiJoshi from "./doctors/DiptiJoshi.jpeg";
 import doctorNikitaJoshi from "./doctors/NikitaJoshi.jpeg";
 import doctorPushkarJoshi from "./doctors/PushkarJoshi.jpeg";
@@ -141,6 +144,10 @@ import clinicnashikroad19 from "./ClinicPhotoshootNashikRoad/19.jpg";
 import clinicnashikroad20 from "./ClinicPhotoshootNashikRoad/20.jpg";
 
 export {
+  about1,
+  about2,
+  about3,
+  dental,
   drLogo,
   videoHero,
   doctorDiptiJoshi,

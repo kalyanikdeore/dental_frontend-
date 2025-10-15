@@ -1,331 +1,275 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { fadeIn, staggerContainer } from "../../utils/motion";
-import axios from "axios";
-
-// Define your image path constant
-const IMAGE_PATH = "http://localhost:8000/uploads";
+import {
+  FaCalendarAlt,
+  FaUser,
+  FaArrowRight,
+  FaSearch,
+  FaClock,
+  FaFire,
+  FaTags,
+  FaBookmark,
+} from "react-icons/fa";
+import { useBlogData } from "../../store/BlogStore";
 
 const BlogPage = () => {
-  const [blogs, setBlogs] = useState([]);
-  const [recentPosts, setRecentPosts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({
-    current_page: 1,
-    last_page: 1,
-    per_page: 6,
-    total: 0,
-  });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const {
+    blogs,
+    blogsLoading,
+    blogsError,
+    blogCategories,
+    filters,
+    pagination,
+    fetchBlogs,
+    setSearchFilter,
+    setCategoryFilter,
+    setPageFilter,
+  } = useBlogData();
 
-  const fetchBlogs = async (page = 1, search = "", category = "") => {
-    try {
-      setLoading(true);
-      let url = `http://localhost:8000/api/blog?page=${page}`;
+  const [searchQuery, setSearchQuery] = useState(filters.search);
+  const [selectedCategory, setSelectedCategory] = useState(filters.category);
 
-      if (search) {
-        url += `&search=${search}`;
+  // Calculate dynamic categories from blogs
+  const dynamicCategories = useMemo(() => {
+    if (!blogs || blogs.length === 0) return [];
+
+    // Get all unique categories from blogs with their counts
+    const categoryMap = blogs.reduce((acc, blog) => {
+      if (blog.category) {
+        acc[blog.category] = (acc[blog.category] || 0) + 1;
       }
+      return acc;
+    }, {});
 
-      if (category) {
-        url += `&category=${category}`;
-      }
+    // Convert to array of objects with name and count
+    return Object.entries(categoryMap).map(([name, count], index) => ({
+      id: index + 1,
+      name,
+      count,
+    }));
+  }, [blogs]);
 
-      const [postsRes, recentRes] = await Promise.all([
-        axios.get(url),
-        axios.get("http://localhost:8000/api/blog/recent"),
-      ]);
-
-      setBlogs(postsRes.data.data || []);
-      setRecentPosts(recentRes.data || []);
-      setPagination({
-        current_page: postsRes.data.current_page || 1,
-        last_page: postsRes.data.last_page || 1,
-        per_page: postsRes.data.per_page || 6,
-        total: postsRes.data.total || 0,
-      });
-
-      // Extract unique categories from all posts
-      const allCategories = (postsRes.data.data || []).map(
-        (post) => post.category
-      );
-      const uniqueCategories = [...new Set(allCategories)];
-      setCategories(uniqueCategories);
-
-      setLoading(false);
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
+  // Fetch blogs on component mount and when filters change
   useEffect(() => {
-    fetchBlogs();
-  }, []);
+    console.log("Fetching blogs with filters:", filters);
+    fetchBlogs(filters);
+  }, [filters, fetchBlogs]);
 
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= pagination.last_page) {
-      fetchBlogs(page, searchQuery, selectedCategory);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  // Handle search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchFilter(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, setSearchFilter]);
 
   const handleSearch = (e) => {
-    e.preventDefault();
-    fetchBlogs(1, searchQuery, selectedCategory);
+    setSearchQuery(e.target.value);
   };
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
-    fetchBlogs(1, searchQuery, category);
+    setCategoryFilter(category);
   };
 
-  const renderPagination = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage, endPage;
-
-    if (pagination.last_page <= maxVisiblePages) {
-      startPage = 1;
-      endPage = pagination.last_page;
-    } else {
-      const maxPagesBeforeCurrent = Math.floor(maxVisiblePages / 2);
-      const maxPagesAfterCurrent = Math.ceil(maxVisiblePages / 2) - 1;
-
-      if (pagination.current_page <= maxPagesBeforeCurrent) {
-        startPage = 1;
-        endPage = maxVisiblePages;
-      } else if (
-        pagination.current_page + maxPagesAfterCurrent >=
-        pagination.last_page
-      ) {
-        startPage = pagination.last_page - maxVisiblePages + 1;
-        endPage = pagination.last_page;
-      } else {
-        startPage = pagination.current_page - maxPagesBeforeCurrent;
-        endPage = pagination.current_page + maxPagesAfterCurrent;
-      }
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`px-4 py-2 border rounded-md ${
-            i === pagination.current_page
-              ? "bg-green-500 text-white border-green-500"
-              : "border-gray-300 text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    return (
-      <nav className="flex items-center space-x-2">
-        <button
-          onClick={() => handlePageChange(pagination.current_page - 1)}
-          disabled={pagination.current_page === 1}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Previous
-        </button>
-
-        {startPage > 1 && (
-          <>
-            <button
-              onClick={() => handlePageChange(1)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              1
-            </button>
-            {startPage > 2 && <span className="px-2">...</span>}
-          </>
-        )}
-
-        {pages}
-
-        {endPage < pagination.last_page && (
-          <>
-            {endPage < pagination.last_page - 1 && (
-              <span className="px-2">...</span>
-            )}
-            <button
-              onClick={() => handlePageChange(pagination.last_page)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              {pagination.last_page}
-            </button>
-          </>
-        )}
-
-        <button
-          onClick={() => handlePageChange(pagination.current_page + 1)}
-          disabled={pagination.current_page === pagination.last_page}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
-      </nav>
-    );
+  const handlePageChange = (pageNumber) => {
+    setPageFilter(pageNumber);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  if (loading) {
+  const currentBlogs = blogs;
+
+  // Calculate total count for "All Categories"
+  const allCategoriesCount = blogs.length;
+
+  // Mock data for sidebar (you can also make this dynamic if you have tag data)
+  const tags = [
+    "Architecture",
+    "Design",
+    "Interior",
+    "Modern",
+    "Sustainable",
+    "Minimalist",
+    "Luxury",
+    "Commercial",
+    "Residential",
+    "Landscape",
+  ];
+
+  if (blogsLoading) {
     return (
-      <div className="h-[600px] md:h-[700px] flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center">
         <div className="text-center">
-          <motion.div
-            className="flex justify-center mb-6"
-            animate={{
-              rotate: 360,
-            }}
-            transition={{
-              duration: 2,
-              ease: "linear",
-              repeat: Infinity,
-            }}
-          >
-            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"></div>
-          </motion.div>
-          <motion.h2
-            className="text-2xl font-semibold text-gray-700"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            Loading...
-          </motion.h2>
-          <motion.p
-            className="text-gray-500 mt-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            Preparing your experience
-          </motion.p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading articles...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (blogsError) {
     return (
-      <div className="text-center py-12 text-red-500">
-        Error loading blog posts: {error}
+      <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-gray-600 mb-4">
+            Error Loading Articles
+          </h3>
+          <p className="text-gray-500 mb-4">{blogsError}</p>
+          <button
+            onClick={() => fetchBlogs(filters)}
+            className="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true }}
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-20"
-    >
-      {/* SEO Meta (would be handled by React Helmet in real implementation) */}
-      <title>
-        B9 Concept Enterprises Blog | Door & Window Design Tips and Trends
-      </title>
-      <meta
-        name="description"
-        content="Explore our blog for expert tips on French door maintenance, window design trends, and industry insights from B9 Concept Enterprises."
-      />
+    <div className="min-h-screen bg-cream-50 pt-40">
+      {/* Header Section */}
+      <section className="bg-teal-700 py-20">
+        <div className="container mx-auto px-6 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-4xl md:text-6xl font-bold text-white mb-4"
+          >
+            Design Insights
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-xl text-teal-700-100 max-w-3xl mx-auto"
+          >
+            Explore the latest trends, ideas, and inspiration in architecture
+            and design from our expert team.
+          </motion.p>
+        </div>
+      </section>
 
-      {/* Page Header */}
-      <motion.div
-        variants={fadeIn("up", "spring", 0.1, 1)}
-        className="text-center mb-16"
-      >
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          B9 Concept Enterprises Blog
-        </h1>
-        <div className="w-24 h-1 bg-green-500 mx-auto"></div>
-        <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-          Expert advice, design inspiration, and industry trends for doors and
-          windows
-        </p>
-      </motion.div>
-
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Main Content */}
-        <motion.div
-          variants={fadeIn("right", "spring", 0.2, 1)}
-          className="lg:w-2/3"
-        >
-          {/* Blog Grid */}
-          {blogs.length === 0 ? (
-            <motion.div
-              variants={fadeIn("up", "spring", 0.2, 1)}
-              className="text-center py-12"
-            >
-              <h3 className="text-xl font-medium text-gray-700 mb-2">
-                No blog posts found
-              </h3>
-              <p className="text-gray-500">
-                {selectedCategory
-                  ? `No posts in the "${selectedCategory}" category`
-                  : searchQuery
-                  ? `No posts matching "${searchQuery}"`
-                  : "No posts available"}
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("");
-                  fetchBlogs();
-                }}
-                className="mt-4 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-              >
-                Clear filters
-              </button>
-            </motion.div>
-          ) : (
-            <>
+      {/* Blog Content */}
+      <section className="py-16">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Main Content */}
+            <div className="lg:w-3/4">
+              {/* Search and Filter Section */}
               <motion.div
-                variants={staggerContainer(0.1, 0.2)}
-                className="grid md:grid-cols-2 gap-8"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mb-12"
               >
-                {blogs.map((blog, index) => (
+                <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
+                  {/* Search Bar */}
+                  <div className="relative w-full md:w-96">
+                    <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search articles..."
+                      value={searchQuery}
+                      onChange={handleSearch}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-700-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleCategorySelect("All")}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        selectedCategory === "All"
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      All Categories ({allCategoriesCount})
+                    </button>
+                    {dynamicCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => handleCategorySelect(category.name)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          selectedCategory === category.name
+                            ? "bg-teal-700 text-white"
+                            : "bg-white text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        {category.name} ({category.count})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Blog Grid */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12"
+              >
+                {currentBlogs.map((blog, index) => (
                   <motion.article
                     key={blog.id}
-                    variants={fadeIn("up", "spring", index * 0.1, 1)}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    whileHover={{ y: -5 }}
+                    className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all"
                   >
                     <Link to={`/blog/${blog.slug}`}>
-                      <img
-                        src={`${IMAGE_PATH}/${blog.image_url}`}
-                        alt={blog.title}
-                        className="w-full h-48 object-cover"
-                      />
+                      <div className="relative overflow-hidden">
+                        <img
+                          src={blog.image}
+                          alt={blog.title}
+                          className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
+                        />
+                        <div className="absolute top-4 left-4">
+                          <span className="bg-teal-700 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            {blog.category}
+                          </span>
+                        </div>
+                      </div>
+
                       <div className="p-6">
-                        <span className="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full mb-2">
-                          {blog.category}
-                        </span>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2 hover:text-green-600 transition-colors">
+                        <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-teal-700-500 transition-colors">
                           {blog.title}
                         </h2>
-                        <p className="text-gray-600 mb-4">{blog.excerpt}</p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">
-                            {new Date(blog.published_date).toLocaleDateString(
-                              "en-US",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              }
-                            )}
-                          </span>
-                          <span className="text-sm font-medium text-green-600 hover:text-green-700 transition-colors">
-                            Read More →
-                          </span>
+
+                        <p className="text-gray-600 mb-4 line-clamp-3">
+                          {blog.excerpt}
+                        </p>
+
+                        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center">
+                              <FaUser className="mr-1" />
+                              <span>{blog.author}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <FaCalendarAlt className="mr-1" />
+                              <span>
+                                {new Date(
+                                  blog.published_date
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <FaClock className="mr-1" />
+                            <span>{blog.read_time}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center text-teal-700 font-medium hover:text-teal-700 transition-colors">
+                          Read More <FaArrowRight className="ml-2" />
                         </div>
                       </div>
                     </Link>
@@ -333,166 +277,223 @@ const BlogPage = () => {
                 ))}
               </motion.div>
 
+              {/* No Results Message */}
+              {currentBlogs.length === 0 && !blogsLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12"
+                >
+                  <h3 className="text-2xl font-bold text-gray-600 mb-4">
+                    No articles found
+                  </h3>
+                  <p className="text-gray-500">
+                    Try adjusting your search or filter criteria.
+                  </p>
+                </motion.div>
+              )}
+
               {/* Pagination */}
               {pagination.last_page > 1 && (
                 <motion.div
-                  variants={fadeIn("up", "spring", 0.4, 1)}
-                  className="mt-12 flex justify-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="flex justify-center items-center space-x-2"
                 >
-                  {renderPagination()}
+                  <button
+                    onClick={() =>
+                      handlePageChange(pagination.current_page - 1)
+                    }
+                    disabled={pagination.current_page === 1}
+                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+
+                  {[...Array(pagination.last_page)].map((_, index) => (
+                    <button
+                      key={index + 1}
+                      onClick={() => handlePageChange(index + 1)}
+                      className={`px-4 py-2 border rounded-lg ${
+                        pagination.current_page === index + 1
+                          ? "bg-teal-700 text-white border-teal-700"
+                          : "border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() =>
+                      handlePageChange(pagination.current_page + 1)
+                    }
+                    disabled={pagination.current_page === pagination.last_page}
+                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Next
+                  </button>
                 </motion.div>
               )}
-            </>
-          )}
-        </motion.div>
-
-        {/* Sidebar */}
-        <motion.aside
-          variants={fadeIn("left", "spring", 0.3, 1)}
-          className="lg:w-1/3"
-        >
-          <div className="bg-gray-50 p-6 rounded-lg sticky top-8">
-            {/* Search */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Search
-              </h3>
-              <form onSubmit={handleSearch} className="relative">
-                <input
-                  type="text"
-                  placeholder="Search articles..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-green-500"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </button>
-              </form>
             </div>
 
-            {/* Recent Posts */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Recent Posts
-              </h3>
-              <ul className="space-y-3">
-                {recentPosts.map((post) => (
-                  <li key={post.id}>
-                    <Link
-                      to={`/blog/${post.slug}`}
-                      className="flex items-start gap-3 group"
-                    >
-                      <img
-                        src={`${IMAGE_PATH}/${post.image_url}`}
-                        alt={post.title}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-800 group-hover:text-green-600 transition-colors">
-                          {post.title}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {new Date(post.published_date).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            }
-                          )}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* Sidebar */}
+            <div className="lg:w-1/4">
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="space-y-8"
+              >
+                {/* Popular Posts */}
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center mb-6">
+                    <FaFire className="text-burnt-teal-700 mr-2" />
+                    <h3 className="text-xl font-bold text-burnt-teal-700">
+                      Popular Posts
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    {currentBlogs.slice(0, 3).map((blog, index) => (
+                      <motion.div
+                        key={blog.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                      >
+                        <Link to={`/blog/${blog.slug}`}>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-burnt-teal-700 transition-colors">
+                              {blog.title}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(
+                                blog.published_date
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Categories */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Categories
-              </h3>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    onClick={() => handleCategorySelect("")}
-                    className={`flex items-center justify-between w-full text-left ${
-                      !selectedCategory
-                        ? "text-green-600 font-medium"
-                        : "text-gray-600 hover:text-green-600"
-                    } transition-colors`}
-                  >
-                    <span>All Categories</span>
-                    <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
-                      {pagination.total}
-                    </span>
-                  </button>
-                </li>
-                {categories.map((category, index) => (
-                  <li key={index}>
-                    <button
-                      onClick={() => handleCategorySelect(category)}
-                      className={`flex items-center justify-between w-full text-left ${
-                        selectedCategory === category
-                          ? "text-green-600 font-medium"
-                          : "text-gray-600 hover:text-green-600"
-                      } transition-colors`}
+                {/* Categories */}
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center mb-6">
+                    <FaTags className="text-burnt-teal-700 mr-2" />
+                    <h3 className="text-xl font-bold text-burnt-teal-700">
+                      Categories
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {/* All Categories Option */}
+                    <motion.button
+                      whileHover={{ x: 5 }}
+                      onClick={() => handleCategorySelect("All")}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        selectedCategory === "All"
+                          ? "bg-teal-700 text-black"
+                          : "text-gray-700 hover:bg-white"
+                      }`}
                     >
-                      <span>{category}</span>
-                      <span className="bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-full">
-                        {blogs.filter((b) => b.category === category).length}
+                      <span className="font-medium">All Categories</span>
+                      <span className="float-right text-sm opacity-70">
+                        ({allCategoriesCount})
                       </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                    </motion.button>
 
-            {/* Newsletter */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Subscribe
-              </h3>
-              <p className="text-sm text-gray-600 mb-3">
-                Get the latest articles and news delivered to your inbox
-              </p>
-              <form className="space-y-3">
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
+                    {/* Dynamic Categories */}
+                    {dynamicCategories.map((category) => (
+                      <motion.button
+                        key={category.id}
+                        whileHover={{ x: 5 }}
+                        onClick={() => handleCategorySelect(category.name)}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                          selectedCategory === category.name
+                            ? "bg-teal-700 text-black"
+                            : "text-gray-700 hover:bg-white"
+                        }`}
+                      >
+                        <span className="font-medium">{category.name}</span>
+                        <span className="float-right text-sm opacity-70">
+                          ({category.count})
+                        </span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Newsletter Sidebar */}
+                <div className="bg-teal-700 rounded-xl p-6 text-white shadow-lg">
+                  <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
+                  <p className="text-teal-700-100 text-sm mb-4">
+                    Get the latest design insights directly in your inbox.
+                  </p>
+                  <div className="space-y-3">
+                    <input
+                      type="email"
+                      placeholder="Your email"
+                      className="w-full px-3 py-2 rounded-lg text-white text-sm border border-cream-200 focus:ring-2 focus:ring-white"
+                    />
+                    <button className="w-full bg-white text-teal-700-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
+                      Subscribe
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </div>
-        </motion.aside>
-      </div>
-    </motion.div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className=" bg-teal-700 rounded-2xl p-8 md:p-12 text-center text-white"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Stay Inspired
+            </h2>
+            <p className="text-teal-700-100 mb-6 max-w-2xl mx-auto">
+              Get the latest design insights, project showcases, and industry
+              trends delivered to your inbox.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="flex-1 px-4 py-3 rounded-lg border border-cream-200 text-white focus:ring-2 focus:ring-white"
+              />
+              <button className="bg-white text-burnt-teal-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Subscribe
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+      <style>{`
+  .bg-cream-50 {
+    background-color: #fefaf6;
+  }
+  .border-cream-200 {
+    border-color: #fae8d8;
+  }
+  .text-burnt-teal-700 {
+    color: #be5103;
+  }
+  .bg-teal-700 {
+    background-color: #be5103;
+  }
+`}</style>
+    </div>
   );
 };
 

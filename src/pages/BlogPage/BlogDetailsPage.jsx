@@ -1,488 +1,440 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { fadeIn } from "../../utils/motion";
 import {
+  FaCalendarAlt,
+  FaUser,
+  FaClock,
+  FaArrowLeft,
+  FaShareAlt,
   FaFacebook,
   FaTwitter,
   FaLinkedin,
-  FaPinterest,
-  FaWhatsapp,
-  FaSearch,
+  FaFire,
+  FaTags,
+  FaBookmark,
 } from "react-icons/fa";
-import axios from "axios";
-import DOMPurify from "dompurify";
+import { useBlogData } from "../../store/BlogStore";
 
-const BlogDetailsPage = () => {
+const BlogDetailPage = () => {
   const { slug } = useParams();
-  const [blog, setBlog] = useState(null);
-  const [recentPosts, setRecentPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const API_BASE_URL = "http://localhost:8000/api";
-  const STORAGE_URL = "http://localhost:8000/uploads";
+  const {
+    blogDetail,
+    blogDetailLoading,
+    blogDetailError,
+    recentPosts,
+    fetchBlogDetail,
+    fetchRecentPosts,
+    clearBlogDetail,
+    blogs, // Assuming this contains all blogs for sidebar
+  } = useBlogData();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [postRes, recentRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/blog/${slug}`),
-          axios.get(`${API_BASE_URL}/blog/recent`),
-        ]);
-        setBlog(postRes.data.post);
-        setRecentPosts(recentRes.data.filter((post) => post.slug !== slug));
-      } catch (err) {
-        setError(err.message || "Failed to load blog post");
-      } finally {
-        setLoading(false);
-      }
-    };
+    console.log("BlogDetailPage - Slug from URL:", slug);
 
-    fetchData();
-  }, [slug]);
-
-  const processedContent = useMemo(() => {
-    if (!blog?.content) return "";
-
-    let fixedContent = blog.content.replace(/src="([^"]*)"/g, (match, src) =>
-      src.startsWith("http") ? match : `src="${STORAGE_URL}/${src}"`
-    );
-
-    return DOMPurify.sanitize(fixedContent, {
-      ALLOWED_TAGS: [
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "p",
-        "img",
-        "br",
-        "strong",
-        "em",
-        "ul",
-        "ol",
-        "li",
-        "a",
-        "div",
-        "span",
-      ],
-      ALLOWED_ATTR: [
-        "src",
-        "alt",
-        "href",
-        "class",
-        "style",
-        "width",
-        "height",
-        "id",
-      ],
-    });
-  }, [blog?.content]);
-
-  const formattedDate = useMemo(() => {
-    return blog?.published_date
-      ? new Date(blog.published_date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
+    if (slug) {
+      fetchBlogDetail(slug)
+        .then((result) => {
+          console.log("BlogDetailPage - Fetch result:", result);
         })
-      : "";
-  }, [blog?.published_date]);
+        .catch((error) => {
+          console.error("BlogDetailPage - Fetch error:", error);
+        });
 
-  if (loading) {
+      fetchRecentPosts(slug, 3);
+    }
+
+    return () => {
+      clearBlogDetail();
+    };
+  }, [slug, fetchBlogDetail, fetchRecentPosts, clearBlogDetail]);
+
+  // Safe array for tags
+  const tagsArray = blogDetail?.tags
+    ? Array.isArray(blogDetail.tags)
+      ? blogDetail.tags
+      : typeof blogDetail.tags === "string"
+      ? blogDetail.tags.split(",").map((tag) => tag.trim())
+      : [blogDetail.tags]
+    : [];
+
+  // Sidebar data calculations
+  const popularPosts = blogs?.slice(0, 3) || [];
+
+  // Calculate categories count
+  const categoriesCount =
+    blogs?.reduce((acc, blog) => {
+      acc[blog.category] = (acc[blog.category] || 0) + 1;
+      return acc;
+    }, {}) || {};
+
+  const dynamicCategories = Object.entries(categoriesCount).map(
+    ([name, count], index) => ({
+      id: index,
+      name,
+      count,
+    })
+  );
+
+  const allCategoriesCount = blogs?.length || 0;
+
+  // Popular tags (you might want to calculate this from all blogs)
+  const tags = [
+    "Design",
+    "Development",
+    "Marketing",
+    "SEO",
+    "UI/UX",
+    "Web",
+    "Mobile",
+    "Branding",
+  ];
+
+  if (blogDetailLoading) {
     return (
-      <div className="h-[600px] md:h-[700px] flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
         <div className="text-center">
-          <motion.div
-            className="flex justify-center mb-6"
-            animate={{
-              rotate: 360,
-            }}
-            transition={{
-              duration: 2,
-              ease: "linear",
-              repeat: Infinity,
-            }}
-          >
-            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full"></div>
-          </motion.div>
-          <motion.h2
-            className="text-2xl font-semibold text-gray-700"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            Loading...
-          </motion.h2>
-          <motion.p
-            className="text-gray-500 mt-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            Preparing your experience
-          </motion.p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading article...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return <ErrorDisplay message={error} />;
+  if (blogDetailError || !blogDetail) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Article Not Found
+          </h2>
+          <p className="text-gray-600 mb-6">
+            The requested blog post could not be found.
+          </p>
+          <Link
+            to="/blog"
+            className="text-teal-500 hover:text-teal-600 font-medium"
+          >
+            ← Back to Blog
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  if (!blog) {
-    return <NotFoundDisplay />;
-  }
+  const shareUrl = window.location.href;
+  const shareText = `Check out this article: ${blogDetail.title}`;
 
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true }}
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-20"
-    >
-      <div className="flex flex-col lg:flex-row gap-8">
-        <motion.div
-          variants={fadeIn("right", "spring", 0.2, 1)}
-          className="lg:w-2/3"
+    <div className="min-h-screen bg-gray-50 pt-20">
+      {/* Navigation */}
+      <div className="container mx-auto px-6 py-6">
+        <Link
+          to="/blog"
+          className="inline-flex items-center text-teal-500 hover:text-teal-600 font-medium"
         >
-          <article className="bg-white rounded-lg shadow-md overflow-hidden">
-            <img
-              src={`${STORAGE_URL}/${blog.image_url}`}
-              alt={blog.title}
-              className="w-full h-96 object-cover"
-              loading="lazy"
-            />
+          <FaArrowLeft className="mr-2" />
+          Back to Blog
+        </Link>
+      </div>
 
-            <div className="p-8">
-              <BlogHeader
-                category={blog.category}
-                date={formattedDate}
-                title={blog.title}
-              />
+      {/* Main Content with Sidebar */}
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Article Content - 3/4 width */}
+          <div className="lg:w-3/4">
+            <motion.article
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="max-w-4xl"
+            >
+              {/* Category and Metadata */}
+              <div className="flex items-center justify-between mb-6">
+                <span className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {blogDetail.category}
+                </span>
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <div className="flex items-center">
+                    <FaCalendarAlt className="mr-1" />
+                    <span>
+                      {new Date(blogDetail.published_date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <FaClock className="mr-1" />
+                    <span>{blogDetail.read_time}</span>
+                  </div>
+                </div>
+              </div>
 
-              <AuthorInfo
-                avatar={`${STORAGE_URL}/${blog.author_avatar}`}
-                name={blog.author_name}
-                role={blog.author_role}
-              />
+              {/* Title */}
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                {blogDetail.title}
+              </h1>
 
+              {/* Excerpt */}
+              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                {blogDetail.excerpt}
+              </p>
+
+              {/* Author Info */}
+              <div className="flex items-center space-x-4 mb-8 p-4 bg-white rounded-lg shadow-sm">
+                <img
+                  src={blogDetail.author_image}
+                  alt={blogDetail.author}
+                  className="w-12 h-12 rounded-full"
+                />
+                <div>
+                  <h4 className="font-semibold text-gray-900">
+                    {blogDetail.author}
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    {blogDetail.author_role}
+                  </p>
+                </div>
+              </div>
+
+              {/* Featured Image */}
+              <div className="mb-8 rounded-xl overflow-hidden">
+                <img
+                  src={blogDetail.image}
+                  alt={blogDetail.title}
+                  className="w-full h-64 md:h-96 object-cover"
+                />
+              </div>
+
+              {/* Article Content */}
               <div
-                className="prose max-w-none"
-                dangerouslySetInnerHTML={{ __html: processedContent }}
-              ></div>
+                className="prose prose-lg max-w-none mb-8"
+                dangerouslySetInnerHTML={{ __html: blogDetail.content }}
+              />
 
-              {blog.related_products?.length > 0 && (
-                <RelatedProducts products={blog.related_products} />
+              {/* Tags - Fixed with safe array */}
+              {tagsArray.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="font-semibold text-gray-900 mb-3">Tags:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tagsArray.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
 
-              <SocialSharing
-                url={window.location.href}
-                title={blog.title}
-                imageUrl={`${STORAGE_URL}/${blog.image_url}`}
-                excerpt={blog.excerpt}
-              />
-            </div>
-          </article>
+              {/* Share Buttons */}
+              <div className="border-t border-b border-gray-200 py-6 mb-8">
+                <h3 className="font-semibold text-gray-900 mb-4">
+                  Share this article:
+                </h3>
+                <div className="flex space-x-4">
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                      shareUrl
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FaFacebook size={20} />
+                  </a>
+                  <a
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                      shareText
+                    )}&url=${encodeURIComponent(shareUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-400 text-white p-2 rounded-lg hover:bg-blue-500 transition-colors"
+                  >
+                    <FaTwitter size={20} />
+                  </a>
+                  <a
+                    href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(
+                      shareUrl
+                    )}&title=${encodeURIComponent(blogDetail.title)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-700 text-white p-2 rounded-lg hover:bg-blue-800 transition-colors"
+                  >
+                    <FaLinkedin size={20} />
+                  </a>
+                </div>
+              </div>
+            </motion.article>
+          </div>
 
-          <CommentsSection />
-        </motion.div>
+          {/* Sidebar - 1/4 width */}
+          <div className="lg:w-1/4">
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="space-y-8"
+            >
+              {/* Popular Posts */}
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center mb-6">
+                  <FaFire className="text-teal-500 mr-2" />
+                  <h3 className="text-xl font-bold text-teal-500">
+                    Popular Posts
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {popularPosts.map((blog, index) => (
+                    <motion.div
+                      key={blog.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.1 }}
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <Link
+                        to={`/blog/${blog.slug}`}
+                        className="flex items-center space-x-3 w-full"
+                      >
+                        <img
+                          src={blog.image}
+                          alt={blog.title}
+                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-teal-500 transition-colors">
+                            {blog.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(blog.published_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
 
-        <BlogSidebar recentPosts={recentPosts} storageUrl={STORAGE_URL} />
-      </div>
-    </motion.div>
-  );
-};
+              {/* Categories */}
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <div className="flex items-center mb-6">
+                  <FaTags className="text-teal-500 mr-2" />
+                  <h3 className="text-xl font-bold text-teal-500">
+                    Categories
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {/* All Categories Option */}
+                  <motion.button
+                    whileHover={{ x: 5 }}
+                    className="w-full text-left px-3 py-2 rounded-lg transition-colors text-gray-700 hover:bg-teal-50 hover:text-teal-600"
+                  >
+                    <Link to="/blog" className="flex justify-between w-full">
+                      <span className="font-medium">All Categories</span>
+                      <span className="text-sm opacity-70">
+                        ({allCategoriesCount})
+                      </span>
+                    </Link>
+                  </motion.button>
 
-const ErrorDisplay = ({ message }) => (
-  <div className="text-center py-12 text-red-500">
-    Error loading blog post: {message}
-  </div>
-);
+                  {/* Dynamic Categories */}
+                  {dynamicCategories.map((category) => (
+                    <motion.button
+                      key={category.id}
+                      whileHover={{ x: 5 }}
+                      className="w-full text-left px-3 py-2 rounded-lg transition-colors text-gray-700 hover:bg-teal-50 hover:text-teal-600"
+                    >
+                      <Link
+                        to={`/blog?category=${encodeURIComponent(
+                          category.name
+                        )}`}
+                        className="flex justify-between w-full"
+                      >
+                        <span className="font-medium">{category.name}</span>
+                        <span className="text-sm opacity-70">
+                          ({category.count})
+                        </span>
+                      </Link>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
 
-const NotFoundDisplay = () => (
-  <div className="text-center py-12">Blog post not found</div>
-);
-
-const BlogHeader = ({ category, date, title }) => (
-  <>
-    <div className="flex items-center justify-between mb-4">
-      <span className="inline-block px-3 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-        {category}
-      </span>
-      <span className="text-sm text-gray-500">{date}</span>
-    </div>
-    <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
-  </>
-);
-
-const AuthorInfo = ({ avatar, name, role }) => (
-  <div className="flex items-center gap-4 mb-8">
-    <img
-      src={avatar}
-      alt={name}
-      className="w-12 h-12 rounded-full object-cover"
-      loading="lazy"
-    />
-    <div>
-      <h4 className="font-medium text-gray-800">{name}</h4>
-      <p className="text-sm text-gray-500">{role}</p>
-    </div>
-  </div>
-);
-
-const RelatedProducts = ({ products }) => (
-  <div className="mt-12 bg-gray-50 p-6 rounded-lg">
-    <h3 className="text-xl font-semibold text-gray-800 mb-4">
-      Related Products
-    </h3>
-    <ul className="space-y-2">
-      {products.map((product, index) => (
-        <li key={index}>
-          <Link
-            to={product.link}
-            className="text-green-600 hover:text-green-700 hover:underline"
-          >
-            {product.name}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
-const SocialSharing = ({ url, title, imageUrl, excerpt }) => (
-  <div className="mt-12 pt-6 border-t border-gray-200">
-    <h4 className="text-lg font-medium text-gray-800 mb-4">
-      Share this article
-    </h4>
-    <div className="flex gap-4">
-      <SocialShareButton
-        platform="facebook"
-        url={url}
-        Icon={FaFacebook}
-        color="bg-blue-600 hover:bg-blue-700"
-      />
-      <SocialShareButton
-        platform="twitter"
-        url={url}
-        text={title}
-        Icon={FaTwitter}
-        color="bg-blue-400 hover:bg-blue-500"
-      />
-      <SocialShareButton
-        platform="linkedin"
-        url={url}
-        title={title}
-        Icon={FaLinkedin}
-        color="bg-blue-700 hover:bg-blue-800"
-      />
-      <SocialShareButton
-        platform="pinterest"
-        url={url}
-        media={imageUrl}
-        description={excerpt}
-        Icon={FaPinterest}
-        color="bg-red-600 hover:bg-red-700"
-      />
-      <SocialShareButton
-        platform="whatsapp"
-        url={url}
-        text={title}
-        Icon={FaWhatsapp}
-        color="bg-green-500 hover:bg-green-600"
-      />
-    </div>
-  </div>
-);
-
-const SocialShareButton = ({
-  platform,
-  url,
-  text,
-  title,
-  media,
-  description,
-  Icon,
-  color,
-}) => {
-  const shareUrls = {
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      url
-    )}`,
-    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      text
-    )}&url=${encodeURIComponent(url)}`,
-    linkedin: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(
-      url
-    )}&title=${encodeURIComponent(title)}`,
-    pinterest: `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(
-      url
-    )}&media=${encodeURIComponent(media)}&description=${encodeURIComponent(
-      description
-    )}`,
-    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(
-      `${text} ${url}`
-    )}`,
-  };
-
-  return (
-    <a
-      href={shareUrls[platform]}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`${color} text-white p-3 rounded-full transition-colors`}
-      aria-label={`Share on ${
-        platform.charAt(0).toUpperCase() + platform.slice(1)
-      }`}
-    >
-      <Icon size={18} />
-    </a>
-  );
-};
-
-const CommentsSection = () => (
-  <motion.div
-    variants={fadeIn("up", "spring", 0.4, 1)}
-    className="mt-12 bg-white rounded-lg shadow-md p-8"
-  >
-    <h3 className="text-xl font-semibold text-gray-800 mb-6">Comments (0)</h3>
-    <div className="border-t border-gray-200 pt-6">
-      <h4 className="text-lg font-medium text-gray-800 mb-4">
-        Leave a comment
-      </h4>
-      <form className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InputField id="name" label="Name *" type="text" required />
-          <InputField id="email" label="Email *" type="email" required />
+              {/* Newsletter Sidebar */}
+              <div className="bg-teal-500 rounded-xl p-6 text-white shadow-lg">
+                <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
+                <p className="text-teal-100 text-sm mb-4">
+                  Get the latest design insights directly in your inbox.
+                </p>
+                <div className="space-y-3">
+                  <input
+                    type="email"
+                    placeholder="Your email"
+                    className="w-full px-3 py-2 rounded-lg text-gray-900 text-sm border border-teal-300 focus:ring-2 focus:ring-white focus:outline-none"
+                  />
+                  <button className="w-full bg-white text-teal-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
+                    Subscribe
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
-        <InputField id="comment" label="Comment *" type="textarea" required />
-        <button
-          type="submit"
-          className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-md transition-colors"
+      </div>
+
+      {/* Recent Posts Section */}
+      <section className="container mx-auto px-6 py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
         >
-          Post Comment
-        </button>
-      </form>
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+            You Might Also Like
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {recentPosts.map((post, index) => (
+              <motion.article
+                key={post.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              >
+                <Link to={`/blog/${post.slug}`}>
+                  <img
+                    src={post.image}
+                    alt={post.title}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-6">
+                    <span className="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
+                      {post.category}
+                    </span>
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-teal-500 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                      {post.excerpt}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{post.read_time}</span>
+                      <span>
+                        {new Date(post.published_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </motion.article>
+            ))}
+          </div>
+        </motion.div>
+      </section>
     </div>
-  </motion.div>
-);
+  );
+};
 
-const InputField = ({ id, label, type = "text", required = false }) => (
-  <div>
-    <label
-      htmlFor={id}
-      className="block text-sm font-medium text-gray-700 mb-1"
-    >
-      {label}
-    </label>
-    {type === "textarea" ? (
-      <textarea
-        id={id}
-        rows={4}
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-        required={required}
-      />
-    ) : (
-      <input
-        type={type}
-        id={id}
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-        required={required}
-      />
-    )}
-  </div>
-);
-
-const BlogSidebar = ({ recentPosts, storageUrl }) => (
-  <motion.aside
-    variants={fadeIn("left", "spring", 0.3, 1)}
-    className="lg:w-1/3"
-  >
-    <div className="bg-gray-50 p-6 rounded-lg sticky top-8">
-      <SearchWidget />
-      <RecentPosts posts={recentPosts} storageUrl={storageUrl} />
-      <NewsletterWidget />
-    </div>
-  </motion.aside>
-);
-
-const SearchWidget = () => (
-  <div className="mb-8">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Search</h3>
-    <div className="relative">
-      <input
-        type="text"
-        placeholder="Search articles..."
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-      />
-      <button className="absolute right-3 top-2.5 text-gray-400 hover:text-green-500">
-        <FaSearch className="h-5 w-5" />
-      </button>
-    </div>
-  </div>
-);
-
-const RecentPosts = ({ posts, storageUrl }) => (
-  <div className="mb-8">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Posts</h3>
-    <ul className="space-y-3">
-      {posts.map((post) => (
-        <li key={post.id}>
-          <Link
-            to={`/blog/${post.slug}`}
-            className="flex items-start gap-3 group"
-          >
-            <img
-              src={`${storageUrl}/${post.image_url}`}
-              alt={post.title}
-              className="w-16 h-16 object-cover rounded"
-              loading="lazy"
-            />
-            <div>
-              <h4 className="text-sm font-medium text-gray-800 group-hover:text-green-600 transition-colors">
-                {post.title}
-              </h4>
-              <p className="text-xs text-gray-500">
-                {new Date(post.published_date).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </p>
-            </div>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
-const NewsletterWidget = () => (
-  <div>
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">Subscribe</h3>
-    <p className="text-sm text-gray-600 mb-3">
-      Get the latest articles and news delivered to your inbox
-    </p>
-    <form className="space-y-3">
-      <input
-        type="email"
-        placeholder="Your email address"
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-        required
-      />
-      <button
-        type="submit"
-        className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors"
-      >
-        Subscribe
-      </button>
-    </form>
-  </div>
-);
-
-export default BlogDetailsPage;
+export default BlogDetailPage;
