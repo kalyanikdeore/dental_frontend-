@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapPin, Phone, Clock, Calendar } from "lucide-react";
+import { MapPin, Phone, Clock, Calendar, CheckCircle } from "lucide-react";
 import axiosInstance from "../../services/api";
 
 const serviceOptions = [
@@ -103,6 +103,11 @@ const CTASection = () => {
           preferred_clinic: ctaData?.clinic1_name || "Deolali Camp Clinic",
           message: "",
         });
+
+        // Auto reset success status after 3 seconds
+        setTimeout(() => {
+          setSubmitStatus(null);
+        }, 3000);
       } else {
         throw new Error("Failed to book appointment");
       }
@@ -247,136 +252,135 @@ const CTASection = () => {
               Book an Appointment
             </h3>
 
-            {submitStatus === "success" ? (
-              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center">
-                <p className="text-teal-700 font-semibold mb-2">
-                  Thank you! Your appointment has been submitted.
-                </p>
-                <button
-                  onClick={() => setSubmitStatus(null)}
-                  className="mt-3 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition"
-                >
-                  Book Another
-                </button>
+            {/* Success Message */}
+            {submitStatus === "success" && (
+              <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <CheckCircle className="text-green-500 mr-2" size={20} />
+                  <span className="text-green-700 font-semibold">
+                    Appointment request submitted successfully!
+                  </span>
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3  text-gray-700  border  border-gray-300 rounded-md"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Preferred Service
-                  </label>
-                  <select
-                    name="preferred_service"
-                    value={formData.preferred_service}
-                    onChange={handleChange}
-                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md text-gray-800"
-                  >
-                    {serviceOptions.map((service) => (
-                      <option key={service} value={service}>
-                        {service}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Preferred Date
-                  </label>
-                  <input
-                    type="date"
-                    name="preferred_date"
-                    value={formData.preferred_date}
-                    onChange={handleChange}
-                    min={getTodayDate()}
-                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Preferred Clinic
-                  </label>
-                  <select
-                    name="preferred_clinic"
-                    value={formData.preferred_clinic}
-                    onChange={handleChange}
-                    className="w-full p-3 border text-gray-700  border-gray-300 rounded-md"
-                  >
-                    <option value="Deolali Camp Clinic">
-                      Deolali Camp Clinic
-                    </option>
-                    <option value="Nashik Road Clinic">
-                      Nashik Road Clinic
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Message</label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows="3"
-                    placeholder="Any specific concerns..."
-                    className="w-full p-3 text-gray-700  border border-gray-300 rounded-md"
-                  ></textarea>
-                </div>
-
-                {error && (
-                  <p className="text-red-600 text-sm font-medium">{error}</p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitStatus === "sending"}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition flex justify-center items-center disabled:opacity-70"
-                >
-                  {submitStatus === "sending" ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Calendar size={18} className="mr-2" />
-                      Book Appointment
-                    </>
-                  )}
-                </button>
-              </form>
             )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-700 mb-2">Full Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 text-gray-700 border border-gray-300 rounded-md"
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 text-gray-700 border border-gray-300 rounded-md"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-2">
+                  Preferred Service
+                </label>
+                <select
+                  name="preferred_service"
+                  value={formData.preferred_service}
+                  onChange={handleChange}
+                  className="w-full p-3 text-gray-700 border border-gray-300 rounded-md"
+                >
+                  {serviceOptions.map((service) => (
+                    <option key={service} value={service}>
+                      {service}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-2">
+                  Preferred Date
+                </label>
+                <input
+                  type="date"
+                  name="preferred_date"
+                  value={formData.preferred_date}
+                  onChange={handleChange}
+                  min={getTodayDate()}
+                  className="w-full p-3 text-gray-700 border border-gray-300 rounded-md"
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-2">
+                  Preferred Clinic
+                </label>
+                <select
+                  name="preferred_clinic"
+                  value={formData.preferred_clinic}
+                  onChange={handleChange}
+                  className="w-full p-3 border text-gray-700 border-gray-300 rounded-md"
+                >
+                  <option value="Deolali Camp Clinic">
+                    Deolali Camp Clinic
+                  </option>
+                  <option value="Nashik Road Clinic">Nashik Road Clinic</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 mb-2">Message</label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows="3"
+                  placeholder="Any specific concerns..."
+                  className="w-full p-3 text-gray-700 border border-gray-300 rounded-md"
+                ></textarea>
+              </div>
+
+              {error && (
+                <p className="text-red-600 text-sm font-medium">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitStatus === "sending"}
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition flex justify-center items-center disabled:opacity-70"
+              >
+                {submitStatus === "sending" ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Submitting...
+                  </>
+                ) : submitStatus === "success" ? (
+                  <>
+                    <CheckCircle size={18} className="mr-2" />
+                    Submitted Successfully
+                  </>
+                ) : (
+                  <>
+                    <Calendar size={18} className="mr-2" />
+                    Book Appointment
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </div>

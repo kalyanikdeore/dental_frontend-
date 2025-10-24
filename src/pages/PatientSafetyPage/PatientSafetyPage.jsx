@@ -114,56 +114,90 @@ const PatientSafetyPage = () => {
       );
   }, []);
 
+  // Split sections into first row (3 items) and second row (remaining items)
+  const firstRowSections = sections.slice(0, 3);
+  const secondRowSections = sections.slice(3);
+
   return (
-    <div className="container mx-auto px-4 py-12 mt-30">
-      <h1 className="text-4xl font-extrabold text-center mb-8 text-[#0a8583]">
+    <div className="container mx-auto px-4  mb-30 pt-44">
+      <h1 className="text-4xl font-extrabold text-center text-[#0a8583]">
         Patient Safety
       </h1>
 
-      <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-md p-8 mb-8">
-        <h2 className="text-2xl font-semibold mb-4 text-[#0E7C7B]">
+      <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-md p-8">
+        <h2 className="text-2xl font-semibold mb-4 text-center text-gray-700">
           Our Commitment to Your Safety
         </h2>
 
-        <p className="text-lg mb-6 text-gray-700">
+        <p className="text-lg mb-8 text-gray-700 text-center">
           At Dr. Joshi&apos;s Dental Clinic,{" "}
           <strong>your health and well-being are our highest priority</strong>.
-          We follow international standards of sterilization, hygiene, and
-          patient care to ensure every visit is safe, comfortable, and
-          stress-free.
+          We follow international standards of sterilization,
+          <br /> hygiene, and patient care to ensure every visit is safe,
+          comfortable, and stress-free.
         </p>
 
-        <div className="space-y-12">
-          {sections.map((item) => (
+        {/* First Row - 3 cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {firstRowSections.map((item) => (
             <div
               key={item.id}
-              className={`flex flex-col ${
-                item.alignment === "right"
-                  ? "md:flex-row-reverse"
-                  : "md:flex-row"
-              } items-center`}
+              className="bg-gray-50 rounded-lg justify-center border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full"
             >
-              <div className="md:w-1/3 flex justify-center mb-4 md:mb-0">
-                <div className="bg-[#0E7C7B]/10 p-4 rounded-full">
+              {/* Icon Section */}
+              <div className="rounded-t-lg flex justify-center">
+                <div className="p-4 rounded-full">
                   {iconComponents[item.icon_name] || (
                     <span className="text-gray-400">No Icon</span>
                   )}
                 </div>
               </div>
 
-              <div
-                className={`md:w-2/3 ${
-                  item.alignment === "right" ? "md:pr-8" : "md:pl-8"
-                }`}
-              >
-                <h3 className="text-xl font-semibold mb-2 text-[#0E7C7B]">
+              {/* Content Section */}
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-xl font-semibold mb-3 text-[#0E7C7B] text-center">
                   {item.title}
                 </h3>
-                <p className="text-gray-700">{item.description}</p>
+                <p className="text-gray-700 text-center flex-grow">
+                  {item.description}
+                </p>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Second Row - 2 cards centered */}
+        {secondRowSections.length > 0 && (
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+              {secondRowSections.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-gray-50 rounded-lg justify-center border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full"
+                >
+                  {/* Icon Section */}
+                  <div className="rounded-t-lg flex justify-center">
+                    <div className="p-4 rounded-full">
+                      {iconComponents[item.icon_name] || (
+                        <span className="text-gray-400">No Icon</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h3 className="text-xl font-semibold mb-3 text-[#0E7C7B] text-center">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-700 text-center flex-grow">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

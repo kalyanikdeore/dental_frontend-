@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -6,48 +6,95 @@ import {
   FaUser,
   FaClock,
   FaArrowLeft,
-  FaShareAlt,
   FaFacebook,
   FaTwitter,
   FaLinkedin,
   FaFire,
   FaTags,
-  FaBookmark,
 } from "react-icons/fa";
-import { useBlogData } from "../../store/BlogStore";
+
+// Add fadeIn animation variant
+const fadeIn = (direction, type, delay, duration) => ({
+  hidden: {
+    x: direction === "left" ? 100 : direction === "right" ? -100 : 0,
+    y: direction === "up" ? 100 : direction === "down" ? -100 : 0,
+    opacity: 0,
+  },
+  show: {
+    x: 0,
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: type,
+      delay: delay,
+      duration: duration,
+      ease: "easeOut",
+    },
+  },
+});
 
 const BlogDetailPage = () => {
   const { slug } = useParams();
-  const {
-    blogDetail,
-    blogDetailLoading,
-    blogDetailError,
-    recentPosts,
-    fetchBlogDetail,
-    fetchRecentPosts,
-    clearBlogDetail,
-    blogs, // Assuming this contains all blogs for sidebar
-  } = useBlogData();
+  const [blogDetail, setBlogDetail] = useState(null);
+  const [blogDetailLoading, setBlogDetailLoading] = useState(true);
+  const [blogDetailError, setBlogDetailError] = useState(null);
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [allBlogs, setAllBlogs] = useState([]);
+
+  const API_BASE_URL = "https://dentalcarenasik.demovoting.com/api";
+
+  // Fetch blog detail
+  const fetchBlogDetail = async (slug) => {
+    try {
+      setBlogDetailLoading(true);
+      setBlogDetailError(null);
+
+      const response = await fetch(`${API_BASE_URL}/blogs/${slug}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setBlogDetail(data.data);
+    } catch (error) {
+      console.error("Error fetching blog detail:", error);
+      setBlogDetailError(error.message || "Failed to fetch blog post");
+    } finally {
+      setBlogDetailLoading(false);
+    }
+  };
+
+  // Fetch all blogs for sidebar
+  const fetchAllBlogs = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/blogs`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAllBlogs(data.data || []);
+
+      // Set recent posts (exclude current blog)
+      const recent = (data.data || [])
+        .filter((blog) => blog.slug !== slug)
+        .slice(0, 3);
+      setRecentPosts(recent);
+    } catch (error) {
+      console.error("Error fetching all blogs:", error);
+      setAllBlogs([]);
+      setRecentPosts([]);
+    }
+  };
 
   useEffect(() => {
-    console.log("BlogDetailPage - Slug from URL:", slug);
-
     if (slug) {
-      fetchBlogDetail(slug)
-        .then((result) => {
-          console.log("BlogDetailPage - Fetch result:", result);
-        })
-        .catch((error) => {
-          console.error("BlogDetailPage - Fetch error:", error);
-        });
-
-      fetchRecentPosts(slug, 3);
+      fetchBlogDetail(slug);
+      fetchAllBlogs();
     }
-
-    return () => {
-      clearBlogDetail();
-    };
-  }, [slug, fetchBlogDetail, fetchRecentPosts, clearBlogDetail]);
+  }, [slug]);
 
   // Safe array for tags
   const tagsArray = blogDetail?.tags
@@ -59,14 +106,18 @@ const BlogDetailPage = () => {
     : [];
 
   // Sidebar data calculations
-  const popularPosts = blogs?.slice(0, 3) || [];
+  const popularPosts = allBlogs
+    .filter((blog) => blog.slug !== slug)
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 3);
 
   // Calculate categories count
-  const categoriesCount =
-    blogs?.reduce((acc, blog) => {
+  const categoriesCount = allBlogs.reduce((acc, blog) => {
+    if (blog.category) {
       acc[blog.category] = (acc[blog.category] || 0) + 1;
-      return acc;
-    }, {}) || {};
+    }
+    return acc;
+  }, {});
 
   const dynamicCategories = Object.entries(categoriesCount).map(
     ([name, count], index) => ({
@@ -76,19 +127,7 @@ const BlogDetailPage = () => {
     })
   );
 
-  const allCategoriesCount = blogs?.length || 0;
-
-  // Popular tags (you might want to calculate this from all blogs)
-  const tags = [
-    "Design",
-    "Development",
-    "Marketing",
-    "SEO",
-    "UI/UX",
-    "Web",
-    "Mobile",
-    "Branding",
-  ];
+  const allCategoriesCount = allBlogs.length;
 
   if (blogDetailLoading) {
     return (
@@ -141,7 +180,7 @@ const BlogDetailPage = () => {
       {/* Main Content with Sidebar */}
       <div className="container mx-auto px-6 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Article Content - 3/4 width */}
+          {/* Article Content - 3/4 width with padding */}
           <div className="lg:w-3/4">
             <motion.article
               initial={{ opacity: 0, y: 30 }}
@@ -149,10 +188,22 @@ const BlogDetailPage = () => {
               transition={{ duration: 0.8 }}
               className="max-w-4xl"
             >
+              {/* Featured Image */}
+              <div className="mb-8 rounded-xl overflow-hidden">
+                <img
+                  src={blogDetail.image || "/default-blog-image.jpg"}
+                  alt={blogDetail.title}
+                  className="w-full h-64 md:h-96 object-cover"
+                  onError={(e) => {
+                    e.target.src = "/default-blog-image.jpg";
+                  }}
+                />
+              </div>
+
               {/* Category and Metadata */}
               <div className="flex items-center justify-between mb-6">
                 <span className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {blogDetail.category}
+                  {blogDetail.category || "Uncategorized"}
                 </span>
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                   <div className="flex items-center">
@@ -169,21 +220,19 @@ const BlogDetailPage = () => {
               </div>
 
               {/* Title */}
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+              <h1 className="text-4xl md:text-4xl font-bold text-gray-900 mb-6">
                 {blogDetail.title}
               </h1>
-
-              {/* Excerpt */}
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                {blogDetail.excerpt}
-              </p>
 
               {/* Author Info */}
               <div className="flex items-center space-x-4 mb-8 p-4 bg-white rounded-lg shadow-sm">
                 <img
-                  src={blogDetail.author_image}
+                  src={blogDetail.author_image || "/default-avatar.jpg"}
                   alt={blogDetail.author}
                   className="w-12 h-12 rounded-full"
+                  onError={(e) => {
+                    e.target.src = "/default-avatar.jpg";
+                  }}
                 />
                 <div>
                   <h4 className="font-semibold text-gray-900">
@@ -193,15 +242,6 @@ const BlogDetailPage = () => {
                     {blogDetail.author_role}
                   </p>
                 </div>
-              </div>
-
-              {/* Featured Image */}
-              <div className="mb-8 rounded-xl overflow-hidden">
-                <img
-                  src={blogDetail.image}
-                  alt={blogDetail.title}
-                  className="w-full h-64 md:h-96 object-cover"
-                />
               </div>
 
               {/* Article Content */}
@@ -266,10 +306,33 @@ const BlogDetailPage = () => {
                 </div>
               </div>
             </motion.article>
+
+            {/* Call to Action */}
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, amount: 0.25 }}
+              variants={fadeIn("up", "spring", 0.3, 1)}
+              className="mt-12 bg-gradient-to-r from-teal-700 to-teal-700 rounded-lg shadow-md p-8 text-center text-white"
+            >
+              <h3 className="text-2xl font-bold mb-4">
+                Ready to Improve Your Dental Health?
+              </h3>
+              <p className="mb-6 text-teal-100">
+                Schedule a consultation with our expert dental team in Nashik
+                today.
+              </p>
+              <Link
+                to="/contact/deolali-camp"
+                className="inline-block bg-white text-teal-600 font-semibold py-3 px-8 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                Book Your Appointment Now
+              </Link>
+            </motion.div>
           </div>
 
-          {/* Sidebar - 1/4 width */}
-          <div className="lg:w-1/4">
+          {/* Sidebar - Right column width adjusted */}
+          <div className="lg:w-1/3 px-4 lg:px-6">
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -291,16 +354,19 @@ const BlogDetailPage = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.4, delay: index * 0.1 }}
-                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <Link
                         to={`/blog/${blog.slug}`}
                         className="flex items-center space-x-3 w-full"
                       >
                         <img
-                          src={blog.image}
+                          src={blog.image || "/default-blog-image.jpg"}
                           alt={blog.title}
                           className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                          onError={(e) => {
+                            e.target.src = "/default-blog-image.jpg";
+                          }}
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-teal-500 transition-colors">
@@ -326,7 +392,7 @@ const BlogDetailPage = () => {
                 </div>
                 <div className="space-y-2">
                   {/* All Categories Option */}
-                  <motion.button
+                  <motion.div
                     whileHover={{ x: 5 }}
                     className="w-full text-left px-3 py-2 rounded-lg transition-colors text-gray-700 hover:bg-teal-50 hover:text-teal-600"
                   >
@@ -336,11 +402,11 @@ const BlogDetailPage = () => {
                         ({allCategoriesCount})
                       </span>
                     </Link>
-                  </motion.button>
+                  </motion.div>
 
                   {/* Dynamic Categories */}
                   {dynamicCategories.map((category) => (
-                    <motion.button
+                    <motion.div
                       key={category.id}
                       whileHover={{ x: 5 }}
                       className="w-full text-left px-3 py-2 rounded-lg transition-colors text-gray-700 hover:bg-teal-50 hover:text-teal-600"
@@ -356,83 +422,31 @@ const BlogDetailPage = () => {
                           ({category.count})
                         </span>
                       </Link>
-                    </motion.button>
+                    </motion.div>
                   ))}
                 </div>
               </div>
-
-              {/* Newsletter Sidebar */}
-              <div className="bg-teal-500 rounded-xl p-6 text-white shadow-lg">
-                <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
-                <p className="text-teal-100 text-sm mb-4">
-                  Get the latest design insights directly in your inbox.
-                </p>
-                <div className="space-y-3">
-                  <input
-                    type="email"
-                    placeholder="Your email"
-                    className="w-full px-3 py-2 rounded-lg text-gray-900 text-sm border border-teal-300 focus:ring-2 focus:ring-white focus:outline-none"
-                  />
-                  <button className="w-full bg-white text-teal-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
-                    Subscribe
-                  </button>
-                </div>
-              </div>
             </motion.div>
+            {/* Newsletter Sidebar */}
+            <div className="bg-teal-900 rounded-xl p-6 text-white shadow-lg">
+              <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
+              <p className="text-teal-100 text-sm mb-4">
+                Get the latest dental health tips directly in your inbox.
+              </p>
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  placeholder="Your email"
+                  className="w-full px-3 py-2 rounded-lg text-gray-900 text-sm border border-teal-300 focus:ring-2 focus:ring-white focus:outline-none"
+                />
+                <button className="w-full bg-white text-teal-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
+                  Subscribe
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Recent Posts Section */}
-      <section className="container mx-auto px-6 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            You Might Also Like
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {recentPosts.map((post, index) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <Link to={`/blog/${post.slug}`}>
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="p-6">
-                    <span className="bg-teal-100 text-teal-800 px-2 py-1 rounded text-xs font-medium mb-2 inline-block">
-                      {post.category}
-                    </span>
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-teal-500 transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm line-clamp-2 mb-4">
-                      {post.excerpt}
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{post.read_time}</span>
-                      <span>
-                        {new Date(post.published_date).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.article>
-            ))}
-          </div>
-        </motion.div>
-      </section>
     </div>
   );
 };

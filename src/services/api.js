@@ -1,32 +1,20 @@
-// import axios from "axios";
-
-// const axiosInstance = axios.create({
-//   baseURL: "http://127.0.0.1:8000/api",
-//   timeout: 10000,
-//   headers: {
-//     "Content-Type": "application/json",
-//   },
-// });
-
-// export const fileBaseURL = "http://127.0.0.1:8000/uploads/";
 import axios from "axios";
 
-// Create an Axios instance with custom configuration
 const axiosInstance = axios.create({
-  baseURL: "http://127.0.0.1:8000/api", // Your API base URL
-  timeout: 10000, // Request timeout in milliseconds
+  // baseURL: "https://dentalcarenasik.demovoting.com/api",
+  baseURL: "http://127.0.0.1:8000/api",
+  timeout: 10000,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
 });
-// Base URL for file uploads
+
+// export const fileBaseURL = "https://dentalcarenasik.demovoting.com/uploads/";
 export const fileBaseURL = "http://127.0.0.1:8000/uploads/";
 
-// Request interceptor to add CSRF token
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Get CSRF token from meta tag (if using Laravel's default setup)
     const token = document
       .querySelector('meta[name="csrf-token"]')
       ?.getAttribute("content");
@@ -42,7 +30,6 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -51,7 +38,6 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// Function to log responses (client-side only)
 const logResponse = (endpoint, data) => {
   if (typeof window !== "undefined") {
     console.log(`Response from ${endpoint}:`, data);
@@ -67,9 +53,6 @@ const logError = (endpoint, error) => {
   return Promise.reject(error);
 };
 
-// API functions
-
-// Blog API functions
 export const fetchBlogsAPI = async (params = {}) => {
   try {
     if (typeof window !== "undefined") {

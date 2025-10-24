@@ -20,19 +20,21 @@ import {
   FaHeartbeat,
 } from "react-icons/fa";
 import { LuHeartPulse } from "react-icons/lu";
-import { Link, useNavigate } from "react-router-dom"; // Added useNavigate here
+import { Link, useNavigate } from "react-router-dom";
 import HeroSection from "./HeroSection";
 import Stats from "./Stats";
 import CTA from "./CTA";
-// import PopupHome from "../../../../Static/careandcurenasik/src/components/PopUp/PopupHome";
 
 // Base URL configuration
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+// const API_BASE_URL =
+//   import.meta.env.VITE_API_BASE_URL ||
+//   "https://dentalcarenasik.demovoting.com/";
 
 const Home = () => {
   const [showPopup, setShowPopup] = useState(false);
-  const navigate = useNavigate(); // Moved useNavigate here
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Show popup after 10 seconds
@@ -133,8 +135,8 @@ const Home = () => {
     const image3Url = getImageUrl(welcome.image_3);
 
     return (
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="py-16 bg-white px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             {/* Content Section */}
             <div className="lg:w-1/2">
@@ -245,19 +247,11 @@ const Home = () => {
   };
 
   const ServicesSection = () => {
-    // Removed useNavigate from here and using the one from parent scope
-
     if (!services || services.length === 0) return null;
 
-    // Function to handle Learn More click
-    const handleLearnMore = (service) => {
-      // Navigate to treatment page with service slug using navigate from parent
-      navigate(`/treatments/${service.slug}`);
-    };
-
     return (
-      <section className="py-16 bg-teal-50">
-        <div className="container mx-auto px-4">
+      <section className="py-16 bg-teal-50 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-[#0a8583] mb-4">
               Our Specialized Dental Services
@@ -326,25 +320,25 @@ const Home = () => {
                   <p className="text-gray-600 mb-4">
                     {svc.short_description || svc.description}
                   </p>
-                  <button
-                    onClick={() => handleLearnMore(svc)}
+                  <Link
+                    to={`/${svc.path}`} // ✅ Uses backend path field
                     className="text-teal-600 hover:text-teal-800 font-medium flex items-center"
                   >
                     Learn more <ChevronRight size={16} className="ml-1" />
-                  </button>
+                  </Link>
                 </motion.div>
               );
             })}
           </div>
 
-          <div className="text-center mt-12">
+          {/* <div className="text-center mt-12">
             <Link
               to="/treatments"
               className="inline-flex items-center bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
             >
               View All Services <ChevronRight size={20} className="ml-1" />
             </Link>
-          </div>
+          </div> */}
         </div>
       </section>
     );
@@ -354,8 +348,8 @@ const Home = () => {
     if (!whyChoose || whyChoose.length === 0) return null;
 
     return (
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="py-16 bg-white px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-[#0a8583] mb-4">
               Why Choose Us?
@@ -445,8 +439,8 @@ const Home = () => {
     if (!testimonials || testimonials.length === 0) return null;
 
     return (
-      <section className="py-16 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
+      <section className="py-16 bg-white px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <motion.h2
             className="text-3xl md:text-4xl font-extrabold text-center text-[#0a8583] mb-4"
             initial={{ opacity: 0, y: -20 }}
@@ -578,8 +572,8 @@ const Home = () => {
     if (!faqs || faqs.length === 0) return null;
 
     return (
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="py-16 bg-white px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-extrabold text-[#0a8583] mb-4">
               Frequently Asked Questions

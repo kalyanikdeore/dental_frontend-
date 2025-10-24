@@ -11,24 +11,72 @@ import {
   FaTags,
   FaBookmark,
 } from "react-icons/fa";
-import { useBlogData } from "../../store/BlogStore";
 
 const BlogPage = () => {
-  const {
-    blogs,
-    blogsLoading,
-    blogsError,
-    blogCategories,
-    filters,
-    pagination,
-    fetchBlogs,
-    setSearchFilter,
-    setCategoryFilter,
-    setPageFilter,
-  } = useBlogData();
+  // State management
+  const [blogs, setBlogs] = useState([]);
+  const [blogsLoading, setBlogsLoading] = useState(true);
+  const [blogsError, setBlogsError] = useState(null);
+  const [filters, setFilters] = useState({
+    search: "",
+    category: "All",
+    page: 1,
+  });
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 6,
+    total: 0,
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const [searchQuery, setSearchQuery] = useState(filters.search);
-  const [selectedCategory, setSelectedCategory] = useState(filters.category);
+  // API base URL
+  const API_BASE_URL = "https://dentalcarenasik.demovoting.com/api";
+
+  // Fetch blogs from API
+  const fetchBlogs = async (filters) => {
+    try {
+      setBlogsLoading(true);
+      setBlogsError(null);
+
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (filters.search) params.append("search", filters.search);
+      if (filters.category && filters.category !== "All")
+        params.append("category", filters.category);
+      params.append("page", filters.page);
+
+      const response = await fetch(
+        `${API_BASE_URL}/blogs?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Set blogs data
+      setBlogs(data.data || []);
+
+      // Set pagination data from API response
+      if (data.meta) {
+        setPagination({
+          current_page: data.meta.current_page,
+          last_page: data.meta.last_page,
+          per_page: data.meta.per_page,
+          total: data.meta.total,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+      setBlogsError(error.message || "Failed to fetch blogs");
+      setBlogs([]);
+    } finally {
+      setBlogsLoading(false);
+    }
+  };
 
   // Calculate dynamic categories from blogs
   const dynamicCategories = useMemo(() => {
@@ -54,16 +102,16 @@ const BlogPage = () => {
   useEffect(() => {
     console.log("Fetching blogs with filters:", filters);
     fetchBlogs(filters);
-  }, [filters, fetchBlogs]);
+  }, [filters]);
 
   // Handle search with debounce
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setSearchFilter(searchQuery);
+      setFilters((prev) => ({ ...prev, search: searchQuery, page: 1 }));
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, setSearchFilter]);
+  }, [searchQuery]);
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
@@ -71,38 +119,33 @@ const BlogPage = () => {
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
-    setCategoryFilter(category);
+    setFilters((prev) => ({ ...prev, category, page: 1 }));
   };
 
   const handlePageChange = (pageNumber) => {
-    setPageFilter(pageNumber);
+    setFilters((prev) => ({ ...prev, page: pageNumber }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Get current page blogs (already handled by API, but keeping for consistency)
   const currentBlogs = blogs;
 
   // Calculate total count for "All Categories"
-  const allCategoriesCount = blogs.length;
+  const allCategoriesCount = pagination.total;
 
-  // Mock data for sidebar (you can also make this dynamic if you have tag data)
-  const tags = [
-    "Architecture",
-    "Design",
-    "Interior",
-    "Modern",
-    "Sustainable",
-    "Minimalist",
-    "Luxury",
-    "Commercial",
-    "Residential",
-    "Landscape",
-  ];
+  // Mock popular posts (you can replace this with actual popular posts from API)
+  const popularPosts = useMemo(() => {
+    if (!blogs || blogs.length === 0) return [];
+    return [...blogs]
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 3);
+  }, [blogs]);
 
   if (blogsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading articles...</p>
         </div>
       </div>
@@ -119,7 +162,7 @@ const BlogPage = () => {
           <p className="text-gray-500 mb-4">{blogsError}</p>
           <button
             onClick={() => fetchBlogs(filters)}
-            className="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition-colors"
+            className="bg-teal-700 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition-colors"
           >
             Try Again
           </button>
@@ -139,16 +182,16 @@ const BlogPage = () => {
             transition={{ duration: 0.8 }}
             className="text-4xl md:text-6xl font-bold text-white mb-4"
           >
-            Design Insights
+            Dr. Joshi's Dental Blog
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-xl text-teal-700-100 max-w-3xl mx-auto"
+            className="text-xl text-teal-100 max-w-3xl mx-auto"
           >
-            Explore the latest trends, ideas, and inspiration in architecture
-            and design from our expert team.
+            Expert advice, oral health tips, and dental care insights from
+            Nashik's leading dental clinic
           </motion.p>
         </div>
       </section>
@@ -158,7 +201,9 @@ const BlogPage = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Main Content */}
-            <div className="lg:w-3/4">
+            <div className="lg:w-3/4 px-4 lg:px-6">
+              {" "}
+              {/* Added padding here */}
               {/* Search and Filter Section */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -175,7 +220,7 @@ const BlogPage = () => {
                       placeholder="Search articles..."
                       value={searchQuery}
                       onChange={handleSearch}
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-700-500 focus:border-transparent"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     />
                   </div>
 
@@ -207,7 +252,6 @@ const BlogPage = () => {
                   </div>
                 </div>
               </motion.div>
-
               {/* Blog Grid */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -227,19 +271,22 @@ const BlogPage = () => {
                     <Link to={`/blog/${blog.slug}`}>
                       <div className="relative overflow-hidden">
                         <img
-                          src={blog.image}
+                          src={blog.image || "/default-blog-image.jpg"}
                           alt={blog.title}
                           className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
+                          onError={(e) => {
+                            e.target.src = "/default-blog-image.jpg";
+                          }}
                         />
                         <div className="absolute top-4 left-4">
                           <span className="bg-teal-700 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            {blog.category}
+                            {blog.category || "Uncategorized"}
                           </span>
                         </div>
                       </div>
 
                       <div className="p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-teal-700-500 transition-colors">
+                        <h2 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-teal-700 transition-colors">
                           {blog.title}
                         </h2>
 
@@ -268,7 +315,7 @@ const BlogPage = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center text-teal-700 font-medium hover:text-teal-700 transition-colors">
+                        <div className="flex items-center text-teal-700 font-medium hover:text-teal-800 transition-colors">
                           Read More <FaArrowRight className="ml-2" />
                         </div>
                       </div>
@@ -276,7 +323,6 @@ const BlogPage = () => {
                   </motion.article>
                 ))}
               </motion.div>
-
               {/* No Results Message */}
               {currentBlogs.length === 0 && !blogsLoading && (
                 <motion.div
@@ -292,7 +338,6 @@ const BlogPage = () => {
                   </p>
                 </motion.div>
               )}
-
               {/* Pagination */}
               {pagination.last_page > 1 && (
                 <motion.div
@@ -339,7 +384,9 @@ const BlogPage = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="lg:w-1/4">
+            <div className="lg:w-1/4 px-4 lg:px-6">
+              {" "}
+              {/* Added padding here */}
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -349,23 +396,34 @@ const BlogPage = () => {
                 {/* Popular Posts */}
                 <div className="bg-white rounded-xl p-6 shadow-lg">
                   <div className="flex items-center mb-6">
-                    <FaFire className="text-burnt-teal-700 mr-2" />
-                    <h3 className="text-xl font-bold text-burnt-teal-700">
+                    <FaFire className="text-teal-700 mr-2" />
+                    <h3 className="text-xl font-bold text-teal-700">
                       Popular Posts
                     </h3>
                   </div>
                   <div className="space-y-4">
-                    {currentBlogs.slice(0, 3).map((blog, index) => (
+                    {popularPosts.map((blog, index) => (
                       <motion.div
                         key={blog.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                        className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
                       >
-                        <Link to={`/blog/${blog.slug}`}>
+                        <Link
+                          to={`/blog/${blog.slug}`}
+                          className="flex items-center space-x-3 w-full"
+                        >
+                          <img
+                            src={blog.image || "/default-blog-image.jpg"}
+                            alt={blog.title}
+                            className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                            onError={(e) => {
+                              e.target.src = "/default-blog-image.jpg";
+                            }}
+                          />
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-burnt-teal-700 transition-colors">
+                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 hover:text-teal-700 transition-colors">
                               {blog.title}
                             </h4>
                             <p className="text-xs text-gray-500 mt-1">
@@ -383,8 +441,8 @@ const BlogPage = () => {
                 {/* Categories */}
                 <div className="bg-white rounded-xl p-6 shadow-lg">
                   <div className="flex items-center mb-6">
-                    <FaTags className="text-burnt-teal-700 mr-2" />
-                    <h3 className="text-xl font-bold text-burnt-teal-700">
+                    <FaTags className="text-teal-700 mr-2" />
+                    <h3 className="text-xl font-bold text-teal-700">
                       Categories
                     </h3>
                   </div>
@@ -395,8 +453,8 @@ const BlogPage = () => {
                       onClick={() => handleCategorySelect("All")}
                       className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                         selectedCategory === "All"
-                          ? "bg-teal-700 text-black"
-                          : "text-gray-700 hover:bg-white"
+                          ? "bg-teal-700 text-white"
+                          : "text-gray-700 hover:bg-gray-50"
                       }`}
                     >
                       <span className="font-medium">All Categories</span>
@@ -413,8 +471,8 @@ const BlogPage = () => {
                         onClick={() => handleCategorySelect(category.name)}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                           selectedCategory === category.name
-                            ? "bg-teal-700 text-black"
-                            : "text-gray-700 hover:bg-white"
+                            ? "bg-teal-700 text-white"
+                            : "text-gray-700 hover:bg-gray-50"
                         }`}
                       >
                         <span className="font-medium">{category.name}</span>
@@ -429,16 +487,17 @@ const BlogPage = () => {
                 {/* Newsletter Sidebar */}
                 <div className="bg-teal-700 rounded-xl p-6 text-white shadow-lg">
                   <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
-                  <p className="text-teal-700-100 text-sm mb-4">
-                    Get the latest design insights directly in your inbox.
+                  <p className="text-teal-100 text-sm mb-4">
+                    Get the latest dental health tips and insights directly in
+                    your inbox.
                   </p>
                   <div className="space-y-3">
                     <input
                       type="email"
                       placeholder="Your email"
-                      className="w-full px-3 py-2 rounded-lg text-white text-sm border border-cream-200 focus:ring-2 focus:ring-white"
+                      className="w-full px-3 py-2 rounded-lg text-gray-700 text-sm border border-teal-500 focus:ring-2 focus:ring-white"
                     />
-                    <button className="w-full bg-white text-teal-700-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
+                    <button className="w-full bg-white text-teal-700 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
                       Subscribe
                     </button>
                   </div>
@@ -448,51 +507,6 @@ const BlogPage = () => {
           </div>
         </div>
       </section>
-
-      {/* Newsletter Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className=" bg-teal-700 rounded-2xl p-8 md:p-12 text-center text-white"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Stay Inspired
-            </h2>
-            <p className="text-teal-700-100 mb-6 max-w-2xl mx-auto">
-              Get the latest design insights, project showcases, and industry
-              trends delivered to your inbox.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-lg border border-cream-200 text-white focus:ring-2 focus:ring-white"
-              />
-              <button className="bg-white text-burnt-teal-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Subscribe
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-      <style>{`
-  .bg-cream-50 {
-    background-color: #fefaf6;
-  }
-  .border-cream-200 {
-    border-color: #fae8d8;
-  }
-  .text-burnt-teal-700 {
-    color: #be5103;
-  }
-  .bg-teal-700 {
-    background-color: #be5103;
-  }
-`}</style>
     </div>
   );
 };

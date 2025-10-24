@@ -11,8 +11,8 @@ import {
   MapPin,
 } from "lucide-react";
 import DentalLogo from "./DentalLogo";
-
 import axiosInstance from "../services/api";
+
 // Clinic information
 const clinics = [
   {
@@ -23,6 +23,7 @@ const clinics = [
     hours: "Mon–Sat: 10:30 AM – 9:00 PM",
     mapEmbed:
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3750.2780598558447!2d73.8344327!3d19.9548052!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bdd9553a6822c55%3A0xb1e4f0ae27957fe2!2sDr.%20Joshi%27s%20Care%20%26%20Cure%20Dental%20Clinic!5e0!3m2!1sen!2sin!4v1756881578216!5m2!1sen!2sin",
+    slug: "deolali-camp",
   },
   {
     id: 2,
@@ -33,6 +34,7 @@ const clinics = [
     hours: "Mon–Sat: 10:30 AM – 9:00 PM",
     mapEmbed:
       "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3751.5211240099898!2d73.8303748!3d19.902432999999995!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bdd958535bd1099%3A0x4813ba22d2d1d82!2sDr.%20Joshi%27s%20Care%20%26%20Cure%20Dental%20Clinic!5e0!3m2!1sen!2sin!4v1756881602062!5m2!1sen!2sin",
+    slug: "nashik-road",
   },
 ];
 
@@ -47,13 +49,6 @@ const staticNavItems = [
     submenu: [
       { label: "Deolali Camp Gallery", path: "/gallery/deolali-camp-gallery" },
       { label: "Nashik Road Gallery", path: "/gallery/nashik-road-gallery" },
-    ],
-  },
-  {
-    label: "Contact",
-    submenu: [
-      { label: "Deolali Camp Clinic", path: "/contact/deolali-camp" },
-      { label: "Nashik Road Clinic", path: "/contact/nashik-road" },
     ],
   },
 ];
@@ -165,6 +160,25 @@ const Navbar = () => {
 
   const handleSubItemClick = (path) => {
     navigate(path);
+    setIsMenuOpen(false);
+    setOpenDropdown(null);
+  };
+
+  // Handle clinic selection from Contact buttons
+  const handleClinicSelection = (clinic) => {
+    setSelectedClinic(clinic);
+    // Store selected clinic in sessionStorage for ContactUsPage to access
+    sessionStorage.setItem("selectedClinic", JSON.stringify(clinic));
+    // Navigate to contact page with clinic slug
+    navigate(`/contact/${clinic.slug}`);
+    setIsMenuOpen(false);
+  };
+
+  // Handle contact button click (general contact page)
+  const handleContactClick = () => {
+    // Store current selected clinic for ContactUsPage
+    sessionStorage.setItem("selectedClinic", JSON.stringify(selectedClinic));
+    navigate("/contact");
     setIsMenuOpen(false);
     setOpenDropdown(null);
   };
@@ -336,9 +350,53 @@ const Navbar = () => {
                   </div>
                 ))}
 
+                {/* Contact Dropdown */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setOpenDropdown("contact")}
+                  onMouseLeave={() => setOpenDropdown(null)}
+                >
+                  <button
+                    className={`px-3 py-2 rounded-lg flex items-center gap-1 transition-all ${
+                      openDropdown === "contact"
+                        ? "text-white bg-[#0E7C7B]"
+                        : "hover:text-[#0E7C7B] hover:bg-teal-50"
+                    }`}
+                  >
+                    Contact
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform ${
+                        openDropdown === "contact" ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Contact Dropdown Menu */}
+                  {openDropdown === "contact" && (
+                    <div className="absolute top-full left-0 bg-white rounded-lg shadow-xl py-2 min-w-[220px] z-[120] border border-gray-100">
+                      {/* <div
+                        onClick={handleContactClick}
+                        className="px-4 py-2 text-sm text-gray-700 cursor-pointer transition-all hover:bg-teal-50 hover:text-[#0E7C7B] hover:pl-5"
+                      >
+                        General Contact
+                      </div> */}
+                      {clinics.map((clinic) => (
+                        <div
+                          key={clinic.id}
+                          onClick={() => handleClinicSelection(clinic)}
+                          className="px-4 py-2 text-sm text-gray-700 cursor-pointer transition-all hover:bg-teal-50 hover:text-[#0E7C7B] hover:pl-5"
+                        >
+                          {clinic.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* CTA Button */}
                 <button
-                  onClick={() => navigate("/contact")}
+                  onClick={handleContactClick}
                   className="ml-2 px-4 py-2 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center text-sm"
                   style={{ backgroundColor: primaryColor }}
                 >
@@ -384,29 +442,31 @@ const Navbar = () => {
           )}
 
           {/* Clinic Selector */}
-          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Clinic:
-            </label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded-md"
-              value={selectedClinic.id}
-              onChange={(e) => {
-                const clinic = clinics.find(
-                  (c) => c.id === parseInt(e.target.value)
-                );
-                setSelectedClinic(clinic);
-                navigate(
-                  clinic.id === 1 ? "/contact/deolali" : "/contact/nashik-road"
-                );
-              }}
-            >
+          <div className="mb-4 p-4 bg-white rounded-lg shadow-md">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">
+              Select a Clinic:
+            </h2>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleContactClick}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-left"
+              >
+                General Contact
+              </button>
               {clinics.map((clinic) => (
-                <option key={clinic.id} value={clinic.id}>
+                <button
+                  key={clinic.id}
+                  onClick={() => handleClinicSelection(clinic)}
+                  className={`px-4 py-2 rounded-lg transition-colors text-left ${
+                    selectedClinic.id === clinic.id
+                      ? "bg-teal-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-teal-100 hover:text-teal-800"
+                  }`}
+                >
                   {clinic.name}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           {/* Mobile Navigation */}
@@ -465,12 +525,52 @@ const Navbar = () => {
               </div>
             ))}
 
+            {/* Contact Section in Mobile */}
+            <div className="border-b border-gray-100 pb-2">
+              <button
+                onClick={() =>
+                  setOpenDropdown(openDropdown === "contact" ? null : "contact")
+                }
+                className="w-full text-left font-medium text-gray-800 py-3 flex justify-between items-center hover:text-[#0E7C7B]"
+              >
+                Contact
+                <ChevronDown
+                  size={20}
+                  className={`transition-transform ${
+                    openDropdown === "contact" ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {openDropdown === "contact" && (
+                <div className="ml-4 space-y-2 mb-2">
+                  <div
+                    onClick={handleContactClick}
+                    className="pl-3 py-2 text-gray-700 hover:text-[#0E7C7B] cursor-pointer flex items-center"
+                  >
+                    <span style={{ color: primaryColor }} className="mr-2">
+                      •
+                    </span>
+                    General Contact
+                  </div>
+                  {clinics.map((clinic) => (
+                    <div
+                      key={clinic.id}
+                      onClick={() => handleClinicSelection(clinic)}
+                      className="pl-3 py-2 text-gray-700 hover:text-[#0E7C7B] cursor-pointer flex items-center"
+                    >
+                      <span style={{ color: primaryColor }} className="mr-2">
+                        •
+                      </span>
+                      {clinic.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* CTA Button */}
             <button
-              onClick={() => {
-                navigate("/contact");
-                setIsMenuOpen(false);
-              }}
+              onClick={handleContactClick}
               className="w-full mt-4 px-4 py-3 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center"
               style={{ backgroundColor: primaryColor }}
             >

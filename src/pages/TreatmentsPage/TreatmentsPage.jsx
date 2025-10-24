@@ -25,6 +25,7 @@ const TreatmentPage2 = () => {
   const navigate = useNavigate();
   const [activeFAQ, setActiveFAQ] = useState(null);
   const [treatment, setTreatment] = useState(null);
+  const [appointmentData, setAppointmentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const location = useLocation();
@@ -40,13 +41,52 @@ const TreatmentPage2 = () => {
         setError(null);
 
         // Fetch treatment data
-        const response = await axiosInstance.get(
+        const treatmentResponse = await axiosInstance.get(
           `/treatments/${treatmentSlug}`
         );
 
-        if (response.data.success) {
-          const treatmentData = response.data.data;
+        if (treatmentResponse.data.success) {
+          const treatmentData = treatmentResponse.data.data;
           setTreatment(treatmentData);
+
+          // Fetch appointment data for this treatment
+          try {
+            const appointmentResponse = await axiosInstance.get(
+              `/treatments/${treatmentSlug}/appointments`
+            );
+
+            if (
+              appointmentResponse.data.success &&
+              appointmentResponse.data.data.length > 0
+            ) {
+              setAppointmentData(appointmentResponse.data.data[0]);
+            } else {
+              // Use default appointment data if no specific appointment data found
+              setAppointmentData({
+                name: "Book Your Appointment",
+                booking_description: "Schedule your dental consultation today",
+                deolali_phone: "+91 90212 56647",
+                nashik_phone: "+91 81490 49104",
+                preferred_time: "9:30 AM - 9:00 PM",
+                preferred_date: "Flexible dates available",
+                button_text: "Book Appointment Now",
+              });
+            }
+          } catch (appointmentError) {
+            console.warn(
+              "Failed to fetch appointment data, using defaults:",
+              appointmentError
+            );
+            setAppointmentData({
+              name: "Book Your Appointment",
+              booking_description: "Schedule your dental consultation today",
+              deolali_phone: "+91 90212 56647",
+              nashik_phone: "+91 81490 49104",
+              preferred_time: "9:30 AM - 9:00 PM",
+              preferred_date: "Flexible dates available",
+              button_text: "Book Appointment Now",
+            });
+          }
         } else {
           throw new Error("Failed to fetch treatment data");
         }
@@ -58,6 +98,7 @@ const TreatmentPage2 = () => {
             "Failed to load treatment information"
         );
         setTreatment(null);
+        setAppointmentData(null);
       } finally {
         setLoading(false);
       }
@@ -187,12 +228,7 @@ const TreatmentPage2 = () => {
     sections = [],
     faqs = [],
     why_choose_items = [],
-    appointments = [],
   } = treatment;
-
-  // Get appointment data from the first appointment or use defaults
-  const appointmentData =
-    appointments && appointments.length > 0 ? appointments[0] : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 overflow-hidden">
@@ -263,7 +299,7 @@ const TreatmentPage2 = () => {
                   alt={h1}
                   className="w-full h-96 object-cover"
                   onError={(e) => {
-                    e.target.src = "/images/default-treatment.jpg";
+                    // e.target.src = "/images/default-treatment.jpg";
                   }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
@@ -410,13 +446,14 @@ const TreatmentPage2 = () => {
                     >
                       <Clock className="text-teal-600 mr-4" size={24} />
                       <div>
-                        {/* <p className="font-semibold text-gray-800">
-                          Mon - Sat: 9:30 AM - 9:00 PM
-                        </p> */}
+                        <p className="font-semibold text-gray-800">
+                          Mon - Sat:{" "}
+                          {appointmentData?.preferred_time ||
+                            "9:30 AM - 9:00 PM"}
+                        </p>
                         <p className="text-sm text-gray-500">
-                          {appointmentData?.preferred_date &&
-                          appointmentData?.preferred_time
-                            ? `Preferred: ${appointmentData.preferred_date} at ${appointmentData.preferred_time}`
+                          {appointmentData?.preferred_date
+                            ? `Preferred: ${appointmentData.preferred_date}`
                             : "Flexible timing available"}
                         </p>
                       </div>
@@ -462,43 +499,51 @@ const TreatmentPage2 = () => {
                     )}
 
                     {/* Fallback phone numbers if no appointment data */}
-                    {!appointmentData && (
-                      <>
-                        <div
-                          className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
-                          onClick={() => handlePhoneClick("+919021256647")}
-                        >
-                          <Phone className="text-teal-600 mr-4" size={24} />
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              +91 90212 56647
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              Deolali Camp
-                            </p>
+                    {!appointmentData?.deolali_phone &&
+                      !appointmentData?.nashik_phone && (
+                        <>
+                          <div
+                            className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                            onClick={() => handlePhoneClick("+919021256647")}
+                          >
+                            <Phone className="text-teal-600 mr-4" size={24} />
+                            <div>
+                              <p className="font-semibold text-gray-800">
+                                +91 90212 56647
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                Deolali Camp
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div
-                          className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
-                          onClick={() => handlePhoneClick("+918149049104")}
-                        >
-                          <Phone className="text-teal-600 mr-4" size={24} />
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              +91 81490 49104
-                            </p>
-                            <p className="text-sm text-gray-500">Nashik Road</p>
+                          <div
+                            className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                            onClick={() => handlePhoneClick("+918149049104")}
+                          >
+                            <Phone className="text-teal-600 mr-4" size={24} />
+                            <div>
+                              <p className="font-semibold text-gray-800">
+                                +91 81490 49104
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                Nashik Road
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
+                        </>
+                      )}
 
                     {/* WhatsApp */}
-                    <div className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors">
+                    <div
+                      className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                      onClick={handleWhatsAppClick}
+                    >
+                      <MessageCircle className="text-teal-600 mr-4" size={24} />
                       <div>
                         <p className="font-semibold text-gray-800">
                           WhatsApp Available
                         </p>
+                        <p className="text-sm text-gray-500">Quick responses</p>
                       </div>
                     </div>
                   </div>
@@ -616,7 +661,7 @@ const Section = ({ section, index }) => {
                 alt={h2}
                 className="w-full h-80 object-cover"
                 onError={(e) => {
-                  e.target.src = "/images/default-section.jpg";
+                  // e.target.src = "/images/default-section.jpg";
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>

@@ -26,13 +26,16 @@ import Footer from "../components/Footer";
 const axiosInstance = {
   get: async (url) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api${url}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-      });
+      const response = await fetch(
+        `https://dentalcarenasik.demovoting.com/api${url}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

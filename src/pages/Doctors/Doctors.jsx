@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Phone,
@@ -18,6 +19,7 @@ const Doctors = () => {
   const [activeFAQ, setActiveFAQ] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const navigate = useNavigate();
 
   // State for dynamic data
   const [doctors, setDoctors] = useState([]);
@@ -26,6 +28,8 @@ const Doctors = () => {
   const [pageSettings, setPageSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   useSEO("doctors");
 
@@ -51,9 +55,11 @@ const Doctors = () => {
         const pointsData = pointsRes.data.data || [];
         setWhyChooseUsPoints(pointsData);
 
+        // Set page settings from API response
         setPageSettings(pageSettingsRes.data.data || null);
 
-        console.log("Why Choose Us Points:", pointsData); // For debugging
+        console.log("Page Settings:", pageSettingsRes.data.data); // For debugging
+        console.log("Why Choose Us Points:", pointsData);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err.response?.data?.message || "Failed to load data");
@@ -78,11 +84,47 @@ const Doctors = () => {
   const handleBookAppointment = (doctor) => {
     setSelectedDoctor(doctor);
     setShowBookingModal(true);
+    setBookingSuccess(false);
   };
 
   const closeBookingModal = () => {
     setShowBookingModal(false);
     setSelectedDoctor(null);
+    setBookingSuccess(false);
+  };
+
+  // Handle booking form submission
+  const handleBookingSubmit = async (formData) => {
+    try {
+      setBookingLoading(true);
+
+      const payload = {
+        doctor_id: selectedDoctor?.id || null,
+        name: formData.full_name,
+        phone: formData.phone_number,
+        date: formData.preferred_date,
+        message: formData.message || "",
+        preferred_time: formData.preferred_time || "",
+      };
+
+      const response = await axiosInstance.post(
+        "/doctor-appointments",
+        payload
+      );
+
+      if (response.data.success) {
+        setBookingSuccess(true);
+        // Reset form after successful submission
+        setTimeout(() => {
+          closeBookingModal();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Booking error:", error);
+      alert("Failed to book appointment. Please try again.");
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   // Handle image error
@@ -90,28 +132,16 @@ const Doctors = () => {
     e.target.src = "/images/doctor-placeholder.jpg";
   };
 
-  // Default static data as fallback
-  const defaultPageSettings = {
-    page: {
-      title:
-        "Meet Our Expert Dental Team at Dr. Joshi's Care & Cure Dental Clinic",
-      description:
-        "At Dr. Joshi's Care & Cure Dental Clinic in Nashik Road, we are proud to have a team of highly skilled and experienced dentists who are passionate about providing world-class dental care. With 22+ years of experience and thousands of successful treatments, our doctors ensure every patient receives personalized, comfortable, and advanced dental solutions.",
-      seo_keywords:
-        "Best Dentist in Nashik Road, Dental Implant Specialist, Orthodontist in Nashik, Root Canal Dentist, Pediatric Dentist",
-    },
-    cta: {
-      title: "Book an Appointment with Our Expert Doctors",
-      description:
-        "Looking for the best dentist in Nashik Road? At Dr. Joshi's Care & Cure Dental Clinic, our team of experts is here to give you the smile you deserve.",
-      phone: "+91 81490 49104",
-      address:
-        "203-204, Hari Amantran, Datta Mandir Road, Near Dattamandir, Nashik Road, Nashik 422101",
-    },
+  // Helper function to get page setting value with fallback
+  const getPageSetting = (section, field, fallback = "") => {
+    if (!pageSettings || !pageSettings[section]) return fallback;
+    return pageSettings[section][field] || fallback;
   };
 
-  // Use dynamic data if available, otherwise use default
-  const currentPageSettings = pageSettings || defaultPageSettings;
+  // Redirect to contact page
+  const handleBookConsultation = () => {
+    navigate("/contact/deolali-camp");
+  };
 
   if (loading) {
     return (
@@ -153,16 +183,20 @@ const Doctors = () => {
             className="max-w-4xl mx-auto text-center"
           >
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              {currentPageSettings.page.title}
+              {getPageSetting("page", "title", "Meet Our Expert Dental Team")}
             </h1>
             <p className="text-xl opacity-90 mb-8">
-              {currentPageSettings.page.description}
+              {getPageSetting(
+                "page",
+                "description",
+                "Experience world-class dental care with our team of highly qualified and experienced dental professionals."
+              )}
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-white text-teal-700 font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-teal-50 transition-colors"
-              onClick={() => setShowBookingModal(true)}
+              onClick={handleBookConsultation}
             >
               Book Consultation
             </motion.button>
@@ -185,7 +219,7 @@ const Doctors = () => {
                   doctor={doctor}
                   onBookAppointment={handleBookAppointment}
                   onImageError={handleImageError}
-                  phone={currentPageSettings.cta.phone}
+                  phone={getPageSetting("cta", "phone", "+1 (555) 123-4567")}
                 />
               ))}
             </div>
@@ -221,7 +255,7 @@ const Doctors = () => {
                       </h3>
                     )}
                     <p className="text-gray-700">
-                      {point.point || point.point}
+                      {point.point || point.description}
                     </p>
                   </div>
                 </motion.div>
@@ -281,23 +315,31 @@ const Doctors = () => {
         {/* CTA Section */}
         <section className="bg-teal-50 rounded-xl shadow-md p-8 text-center">
           <h2 className="text-2xl font-bold text-teal-800 mb-4">
-            {currentPageSettings.cta.title}
+            {getPageSetting("cta", "title", "Ready to Transform Your Smile?")}
           </h2>
           <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
-            {currentPageSettings.cta.description}
+            {getPageSetting(
+              "cta",
+              "description",
+              "Book your appointment today and experience the difference our expert dental care can make."
+            )}
           </p>
 
           <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-6">
             <div className="flex items-center">
               <Phone className="text-teal-600 mr-2" size={20} />
               <span className="text-gray-700 font-medium">
-                {currentPageSettings.cta.phone}
+                {getPageSetting("cta", "phone", "+1 (555) 123-4567")}
               </span>
             </div>
             <div className="flex items-center">
               <MapPin className="text-teal-600 mr-2" size={20} />
               <span className="text-gray-700">
-                {currentPageSettings.cta.address}
+                {getPageSetting(
+                  "cta",
+                  "address",
+                  "123 Dental Street, Healthcare City"
+                )}
               </span>
             </div>
           </div>
@@ -306,7 +348,7 @@ const Doctors = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="bg-teal-700 hover:bg-teal-800 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
-            onClick={() => setShowBookingModal(true)}
+            onClick={handleBookConsultation}
           >
             <Calendar size={20} className="inline mr-2" />
             Book Appointment Now
@@ -322,7 +364,10 @@ const Doctors = () => {
         <BookingModal
           selectedDoctor={selectedDoctor}
           onClose={closeBookingModal}
-          phone={currentPageSettings.cta.phone}
+          phone={getPageSetting("cta", "phone", "+1 (555) 123-4567")}
+          onSubmit={handleBookingSubmit}
+          loading={bookingLoading}
+          success={bookingSuccess}
         />
       )}
     </div>
@@ -417,14 +462,71 @@ const DoctorCard = ({ doctor, onBookAppointment, onImageError, phone }) => {
   );
 };
 
-// Separate Modal Components
-const BookingModal = ({ selectedDoctor, onClose, phone }) => {
+// Updated BookingModal Component
+const BookingModal = ({
+  selectedDoctor,
+  onClose,
+  phone,
+  onSubmit,
+  loading,
+  success,
+}) => {
+  const [formData, setFormData] = useState({
+    full_name: "",
+    phone_number: "",
+    preferred_date: "",
+    preferred_time: "",
+    message: "",
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission here
-    alert("Appointment booking functionality would be implemented here");
-    onClose();
+    onSubmit(formData);
   };
+
+  if (success) {
+    return (
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl max-w-md w-full p-6 text-center">
+          <div className="text-green-500 mb-4">
+            <svg
+              className="w-16 h-16 mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              ></path>
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-teal-800 mb-4">
+            Appointment Booked Successfully!
+          </h3>
+          <p className="text-gray-600 mb-6">
+            We will contact you shortly to confirm your appointment.
+          </p>
+          <button
+            onClick={onClose}
+            className="bg-teal-700 hover:bg-teal-800 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -444,30 +546,40 @@ const BookingModal = ({ selectedDoctor, onClose, phone }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-gray-700 mb-2">Full Name</label>
+            <label className="block text-gray-700 mb-2">Full Name *</label>
             <input
               type="text"
+              name="full_name"
               required
+              value={formData.full_name}
+              onChange={handleInputChange}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="Enter your full name"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-2">Phone Number</label>
+            <label className="block text-gray-700 mb-2">Phone Number *</label>
             <input
               type="tel"
+              name="phone_number"
               required
+              value={formData.phone_number}
+              onChange={handleInputChange}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="Enter your phone number"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-2">Preferred Date</label>
+            <label className="block text-gray-700 mb-2">Preferred Date *</label>
             <input
               type="date"
+              name="preferred_date"
               required
+              value={formData.preferred_date}
+              onChange={handleInputChange}
+              min={new Date().toISOString().split("T")[0]}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
@@ -477,7 +589,10 @@ const BookingModal = ({ selectedDoctor, onClose, phone }) => {
               Message (Optional)
             </label>
             <textarea
+              name="message"
               rows={3}
+              value={formData.message}
+              onChange={handleInputChange}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="Any specific concerns or notes"
             ></textarea>
@@ -487,15 +602,24 @@ const BookingModal = ({ selectedDoctor, onClose, phone }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={loading}
+              className="flex-1 border border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-teal-700 hover:bg-teal-800 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              disabled={loading}
+              className="flex-1 bg-teal-700 hover:bg-teal-800 text-white font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
             >
-              Confirm Booking
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Booking...
+                </>
+              ) : (
+                "Confirm Booking"
+              )}
             </button>
           </div>
         </form>

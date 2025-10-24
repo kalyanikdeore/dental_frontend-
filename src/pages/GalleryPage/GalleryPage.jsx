@@ -36,6 +36,7 @@ const GalleryPage = () => {
 
   // API base URL
   const API_BASE_URL = "http://127.0.0.1:8000/api";
+  //  const API_BASE_URL = "https://careandcurenasik.demovoting.com/api";
 
   // Fetch all clinics for navigation
   useEffect(() => {
@@ -192,48 +193,8 @@ const GalleryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 py-32">
       {/* Clinic Navigation Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center py-4 gap-4">
-            {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center hover:text-green-500 transition-colors"
-              >
-                <Home size={16} className="mr-1" />
-                Home
-              </button>
-              <span>/</span>
-              <span className="text-green-500 font-medium">Gallery</span>
-              <span>/</span>
-              <span className="text-gray-900 font-medium">{clinic?.name}</span>
-            </div>
-
-            {/* Clinic Selector */}
-            {clinicsList.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <label className="text-sm text-gray-600 font-medium">
-                  View Gallery:
-                </label>
-                <select
-                  value={extractedClinicSlug}
-                  onChange={(e) => handleClinicChange(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {clinicsList.map((clinicItem) => (
-                    <option key={clinicItem.id} value={clinicItem.slug}>
-                      {clinicItem.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <motion.div
@@ -255,37 +216,6 @@ const GalleryPage = () => {
           </p>
           <div className="w-24 h-1 bg-green-500 mx-auto"></div>
         </motion.div>
-
-        {/* Stats */}
-        {allImages.length > 0 && (
-          <motion.div
-            variants={fadeIn("up", "spring", 0.15, 1)}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
-          >
-            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
-              <div className="text-2xl font-bold text-green-500">
-                {allImages.length}
-              </div>
-              <div className="text-gray-600">Total Images</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
-              <div className="text-2xl font-bold text-green-500">
-                {categories.length - 1}
-              </div>
-              <div className="text-gray-600">Categories</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
-              <div className="text-2xl font-bold text-green-500">
-                {filteredImages.length}
-              </div>
-              <div className="text-gray-600">
-                {selectedCategory === "All"
-                  ? "All Images"
-                  : `${selectedCategory} Images`}
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Category Filters */}
         {categories.length > 1 && (
