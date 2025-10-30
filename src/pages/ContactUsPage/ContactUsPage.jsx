@@ -131,18 +131,6 @@ const ContactUsPage = () => {
     try {
       setServicesLoading(true);
 
-      // If you have a services API endpoint
-      // const servicesResponse = await axiosInstance.get("/services");
-      // if (servicesResponse.data && servicesResponse.data.length > 0) {
-      //   setServices(servicesResponse.data);
-      //   setFormData(prev => ({
-      //     ...prev,
-      //     preferred_service: servicesResponse.data[0].name
-      //   }));
-      // } else {
-      //   setServices(serviceOptions);
-      // }
-
       // For now, using static service options
       setServices(serviceOptions);
     } catch (error) {
@@ -263,17 +251,6 @@ const ContactUsPage = () => {
     const today = new Date();
     return today.toISOString().split("T")[0];
   };
-
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen pt-32 pb-16 px-4 flex items-center justify-center">
-  //       <div className="text-center">
-  //         <Loader className="animate-spin h-12 w-12 text-teal-600 mx-auto" />
-  //         <p className="mt-4 text-gray-600">Loading contact information...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   if (error && !selectedClinic) {
     return (

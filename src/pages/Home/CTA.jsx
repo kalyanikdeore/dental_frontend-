@@ -129,8 +129,8 @@ const CTASection = () => {
 
   if (loading) {
     return (
-      <section className="py-16 bg-gray-200 animate-pulse">
-        <div className="container mx-auto px-4 text-center">
+      <section className="py-16 bg-gray-200 animate-pulse px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
           <h3 className="text-lg text-gray-600">Loading contact info...</h3>
         </div>
       </section>
@@ -139,8 +139,8 @@ const CTASection = () => {
 
   if (error) {
     return (
-      <section className="py-16 bg-red-50">
-        <div className="container mx-auto px-4 text-center">
+      <section className="py-16 bg-red-50 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
           <h3 className="text-xl font-semibold text-red-700 mb-4">
             Failed to load data
           </h3>
@@ -158,17 +158,19 @@ const CTASection = () => {
 
   if (!ctaData) {
     return (
-      <section className="py-16 bg-gray-100 text-center">
-        <p>No contact information available right now.</p>
+      <section className="py-16 bg-gray-100 text-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <p>No contact information available right now.</p>
+        </div>
       </section>
     );
   }
 
   return (
     <section
-      className={`py-16 ${ctaData.background_color} ${ctaData.text_color}`}
+      className={`py-16 ${ctaData.background_color} ${ctaData.text_color} px-4 sm:px-6 lg:px-8`}
     >
-      <div className="container mx-auto px-4 flex flex-col md:flex-row">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row">
         {/* Left Info Section */}
         <div className="md:w-1/2 mb-10 md:mb-0">
           <h2 className="text-3xl font-bold mb-6">{ctaData.title}</h2>

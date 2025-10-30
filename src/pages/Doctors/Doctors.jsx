@@ -145,7 +145,7 @@ const Doctors = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 mt-32 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 mt-32 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading doctors information...</p>
@@ -156,7 +156,7 @@ const Doctors = () => {
 
   if (error && doctors.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 mt-32 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 mt-32 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center text-red-600">
           <p className="text-lg font-semibold">Error loading data</p>
           <p className="mt-2">{error}</p>
@@ -174,8 +174,8 @@ const Doctors = () => {
   return (
     <div className="min-h-screen bg-gray-50 mt-32">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-teal-700 to-teal-800 text-white py-16">
-        <div className="container mx-auto px-4">
+      <section className="relative bg-gradient-to-r from-teal-700 to-teal-800 text-white py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -205,7 +205,7 @@ const Doctors = () => {
       </section>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Our Core Dental Experts */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold text-teal-800 text-center mb-8">
@@ -390,7 +390,7 @@ const DoctorCard = ({ doctor, onBookAppointment, onImageError, phone }) => {
             src={doctor.image}
             alt={doctor.alt}
             onError={onImageError}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-100 hover:scale-105"
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
             <h3 className="text-xl font-bold text-white">{doctor.name}</h3>

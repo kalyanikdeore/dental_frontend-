@@ -124,7 +124,7 @@ const PatientSafetyPage = () => {
         Patient Safety
       </h1>
 
-      <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-md p-8">
+      <div className="max-w-8xl mx-auto bg-white rounded-lg  p-8">
         <h2 className="text-2xl font-semibold mb-4 text-center text-gray-700">
           Our Commitment to Your Safety
         </h2>

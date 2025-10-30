@@ -131,7 +131,7 @@ const BlogDetailPage = () => {
 
   if (blogDetailLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading article...</p>
@@ -142,7 +142,7 @@ const BlogDetailPage = () => {
 
   if (blogDetailError || !blogDetail) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pt-20 flex items-center  justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Article Not Found
@@ -167,7 +167,7 @@ const BlogDetailPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       {/* Navigation */}
-      <div className="container mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-26">
         <Link
           to="/blog"
           className="inline-flex items-center text-teal-500 hover:text-teal-600 font-medium"
@@ -178,9 +178,9 @@ const BlogDetailPage = () => {
       </div>
 
       {/* Main Content with Sidebar */}
-      <div className="container mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Article Content - 3/4 width with padding */}
+          {/* Article Content - 3/4 width */}
           <div className="lg:w-3/4">
             <motion.article
               initial={{ opacity: 0, y: 30 }}
@@ -332,7 +332,7 @@ const BlogDetailPage = () => {
           </div>
 
           {/* Sidebar - Right column width adjusted */}
-          <div className="lg:w-1/3 px-4 lg:px-6">
+          <div className="lg:w-1/3">
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -426,24 +426,25 @@ const BlogDetailPage = () => {
                   ))}
                 </div>
               </div>
-            </motion.div>
-            {/* Newsletter Sidebar */}
-            <div className="bg-teal-900 rounded-xl p-6 text-white shadow-lg">
-              <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
-              <p className="text-teal-100 text-sm mb-4">
-                Get the latest dental health tips directly in your inbox.
-              </p>
-              <div className="space-y-3">
-                <input
-                  type="email"
-                  placeholder="Your email"
-                  className="w-full px-3 py-2 rounded-lg text-gray-900 text-sm border border-teal-300 focus:ring-2 focus:ring-white focus:outline-none"
-                />
-                <button className="w-full bg-white text-teal-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
-                  Subscribe
-                </button>
+
+              {/* Newsletter Sidebar */}
+              <div className="bg-teal-900 rounded-xl p-6 text-white shadow-lg">
+                <h3 className="text-xl font-bold mb-3">Stay Updated</h3>
+                <p className="text-teal-100 text-sm mb-4">
+                  Get the latest dental health tips directly in your inbox.
+                </p>
+                <div className="space-y-3">
+                  <input
+                    type="email"
+                    placeholder="Your email"
+                    className="w-full px-3 py-2 rounded-lg text-gray-900 text-sm border border-teal-300 focus:ring-2 focus:ring-white focus:outline-none"
+                  />
+                  <button className="w-full bg-white text-teal-500 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors">
+                    Subscribe
+                  </button>
+                </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

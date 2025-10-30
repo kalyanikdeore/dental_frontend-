@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+// import WPPopup from "../components/PopUp/WPPopup";
+import WhatsAppPopup from "../components/PopUp/WhatsAppPopup";
 
 // Create axios instance with better error handling
 const axiosInstance = {
@@ -163,6 +165,8 @@ const Layout = () => {
         <Navbar />
         <main className="pt-16">
           <Outlet />
+
+          {/* <WPPopup /> */}
         </main>
         <Footer />
       </div>
@@ -173,6 +177,7 @@ const Layout = () => {
     <div className="relative">
       <Navbar />
       <main className="pt-16">
+        <WhatsAppPopup />
         <Outlet />
       </main>
       <Footer />

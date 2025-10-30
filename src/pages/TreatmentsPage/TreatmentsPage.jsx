@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
@@ -167,18 +167,53 @@ const TreatmentPage2 = () => {
     window.location.href = `tel:${phoneNumber}`;
   };
 
+  // Format time display
+  const formatTimeDisplay = (timeString) => {
+    if (!timeString) return "9:30 AM - 9:00 PM";
+
+    // Handle time format like "00:33:00"
+    if (timeString.includes(":")) {
+      const timeParts = timeString.split(":");
+      if (timeParts.length === 3) {
+        const hours = parseInt(timeParts[0]);
+        const minutes = timeParts[1];
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const formattedHours = hours % 12 || 12;
+        return `${formattedHours}:${minutes} ${ampm}`;
+      }
+    }
+    return timeString;
+  };
+
+  // Format date display
+  const formatDateDisplay = (dateString) => {
+    if (!dateString) return "Flexible dates available";
+
+    // Handle date format like "2030-01-18T00:00:00.000000Z"
+    if (dateString.includes("T")) {
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      } catch (e) {
+        return "Flexible dates available";
+      }
+    }
+    return dateString;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
           <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-teal-700 text-lg font-semibold">
-            Preparing your treatment journey...
-          </div>
         </motion.div>
       </div>
     );
@@ -186,7 +221,7 @@ const TreatmentPage2 = () => {
 
   if (error || !treatment) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -233,7 +268,7 @@ const TreatmentPage2 = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50 mt-32 overflow-hidden">
       {/* Hero Section with Modern Design */}
-      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
         {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-teal-600/20 to-blue-600/10"></div>
@@ -241,7 +276,7 @@ const TreatmentPage2 = () => {
           <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="container mx-auto px-4 relative z-10">
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <motion.div
@@ -267,7 +302,7 @@ const TreatmentPage2 = () => {
                   <ArrowRight className="ml-2" size={20} />
                 </motion.button>
 
-                <motion.button
+                {/* <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="flex items-center text-gray-700 font-medium py-4 px-6 hover:text-teal-600 transition-colors"
@@ -275,8 +310,32 @@ const TreatmentPage2 = () => {
                 >
                   <MessageCircle className="mr-2" size={20} />
                   Chat on WhatsApp
-                </motion.button>
+                </motion.button> */}
               </div>
+
+              {/* Stats */}
+              {/* <div className="grid grid-cols-3 gap-6 mt-12 max-w-md">
+                {[
+                  { number: "19+", label: "Years Experience" },
+                  { number: "13K+", label: "Happy Patients" },
+                  { number: "4.9/5", label: "Google Rating" },
+                ].map((stat, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + index * 0.1 }}
+                    className="text-center"
+                  >
+                    <div className="text-2xl font-bold text-teal-600">
+                      {stat.number}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {stat.label}
+                    </div>
+                  </motion.div>
+                ))}
+              </div> */}
             </motion.div>
 
             {/* Right Image */}
@@ -298,9 +357,6 @@ const TreatmentPage2 = () => {
                   }
                   alt={h1}
                   className="w-full h-96 object-cover"
-                  onError={(e) => {
-                    // e.target.src = "/images/default-treatment.jpg";
-                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
@@ -333,20 +389,21 @@ const TreatmentPage2 = () => {
           </svg>
         </div>
 
-        <div className="container mx-auto px-4 pt-20 pb-16">
-          <div className="flex flex-col lg:flex-row gap-12">
-            {/* Content */}
+        {/* Two Column Layout */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Left Side - Main Content (Scrollable) */}
             <div className="w-full lg:w-2/3">
-              {sections?.map((section, index) => (
-                <Section
-                  key={section.id || index}
-                  section={section}
-                  index={index}
-                />
-              ))}
+              <div className="space-y-16">
+                {sections?.map((section, index) => (
+                  <Section
+                    key={section.id || index}
+                    section={section}
+                    index={index}
+                  />
+                ))}
 
-              {/* FAQ Section */}
-              {faqs && faqs.length > 0 && (
+                {/* FAQ Section */}
                 <motion.section
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -362,72 +419,83 @@ const TreatmentPage2 = () => {
                     </p>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {faqs.map((faq, index) => (
-                      <motion.div
-                        key={faq.id || index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.9 + index * 0.1 }}
-                        className="group"
-                      >
-                        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 group-hover:border-teal-200 transition-all duration-300 h-full">
-                          <button
-                            className="w-full text-left"
-                            onClick={() => toggleFAQ(index)}
-                          >
-                            <div className="flex justify-between items-center mb-4">
-                              <h3 className="font-semibold text-gray-800 text-lg pr-4">
-                                {faq.question || "Question"}
-                              </h3>
-                              <ChevronDown
-                                className={`transition-transform duration-300 text-teal-600 ${
-                                  activeFAQ === index ? "rotate-180" : ""
-                                }`}
-                                size={20}
-                              />
-                            </div>
-                          </button>
-                          <AnimatePresence>
-                            {activeFAQ === index && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="pt-4 border-t border-gray-100">
-                                  <div
-                                    className="text-gray-600 leading-relaxed"
-                                    dangerouslySetInnerHTML={{
-                                      __html:
-                                        faq.answer || "Answer not available",
-                                    }}
-                                  />
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                  {faqs && faqs.length > 0 ? (
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {faqs.map((faq, index) => (
+                        <motion.div
+                          key={faq.id || index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.9 + index * 0.1 }}
+                          className="group"
+                        >
+                          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 group-hover:border-teal-200 transition-all duration-300 h-full">
+                            <button
+                              className="w-full text-left"
+                              onClick={() => toggleFAQ(index)}
+                            >
+                              <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-semibold text-gray-800 text-lg pr-4">
+                                  {faq.question || "Question"}
+                                </h3>
+                                <ChevronDown
+                                  className={`transition-transform duration-300 text-teal-600 ${
+                                    activeFAQ === index ? "rotate-180" : ""
+                                  }`}
+                                  size={20}
+                                />
+                              </div>
+                            </button>
+                            <AnimatePresence>
+                              {activeFAQ === index && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="pt-4 border-t border-gray-100">
+                                    <div
+                                      className="text-gray-600 leading-relaxed"
+                                      dangerouslySetInnerHTML={{
+                                        __html:
+                                          faq.answer || "Answer not available",
+                                      }}
+                                    />
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-gray-500 text-lg mb-4">
+                        No FAQs available for this treatment yet.
+                      </div>
+                      <p className="text-gray-400">
+                        Check back later or contact us directly for any
+                        questions.
+                      </p>
+                    </div>
+                  )}
                 </motion.section>
-              )}
+              </div>
             </div>
 
-            {/* Sidebar */}
+            {/* Right Side - Sticky Sidebar */}
             <div className="w-full lg:w-1/3">
-              {/* Consultation Card - Fixed appointment section */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-                className="sticky top-6"
-              >
-                {/* Appointment Section */}
-                <div className="bg-gradient-to-br from-white to-teal-50/30 backdrop-blur-sm rounded-3xl p-8 mb-8 border border-white/50">
+              <div className="sticky top-32 space-y-8">
+                {/* Book Appointment Section - Sticky */}
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-gradient-to-br from-white to-teal-50/30 backdrop-blur-sm rounded-3xl p-8 border border-white/50 shadow-lg"
+                >
                   <div className="text-center mb-8">
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">
                       {appointmentData?.name || "Book Your Appointment"}
@@ -441,28 +509,35 @@ const TreatmentPage2 = () => {
                   <div className="space-y-6 mb-8">
                     {/* Working Hours */}
                     <div
-                      className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                      className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer transition-colors"
                       onClick={() => navigate("/contact")}
                     >
                       <Clock className="text-teal-600 mr-4" size={24} />
                       <div>
-                        <p className="font-semibold text-gray-800">
+                        {/* <p className="font-semibold text-gray-800">
                           Mon - Sat:{" "}
-                          {appointmentData?.preferred_time ||
+                          {formatTimeDisplay(appointmentData?.preferred_time) ||
                             "9:30 AM - 9:00 PM"}
-                        </p>
-                        <p className="text-sm text-gray-500">
+                        </p> */}
+                        {appointmentData?.title && (
+                          <p className="font-semibold text-gray-800 mt-1">
+                            {appointmentData.title}
+                          </p>
+                        )}
+                        {/* <p className="text-sm text-gray-500 mt-1">
                           {appointmentData?.preferred_date
-                            ? `Preferred: ${appointmentData.preferred_date}`
+                            ? `Preferred: ${formatDateDisplay(
+                                appointmentData.preferred_date
+                              )}`
                             : "Flexible timing available"}
-                        </p>
+                        </p> */}
                       </div>
                     </div>
 
                     {/* Phone Numbers */}
                     {appointmentData?.deolali_phone && (
                       <div
-                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer transition-colors"
                         onClick={() =>
                           handlePhoneClick(
                             appointmentData.deolali_phone.replace(/\s/g, "")
@@ -481,7 +556,7 @@ const TreatmentPage2 = () => {
 
                     {appointmentData?.nashik_phone && (
                       <div
-                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                        className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer transition-colors"
                         onClick={() =>
                           handlePhoneClick(
                             appointmentData.nashik_phone.replace(/\s/g, "")
@@ -498,44 +573,9 @@ const TreatmentPage2 = () => {
                       </div>
                     )}
 
-                    {/* Fallback phone numbers if no appointment data */}
-                    {!appointmentData?.deolali_phone &&
-                      !appointmentData?.nashik_phone && (
-                        <>
-                          <div
-                            className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
-                            onClick={() => handlePhoneClick("+919021256647")}
-                          >
-                            <Phone className="text-teal-600 mr-4" size={24} />
-                            <div>
-                              <p className="font-semibold text-gray-800">
-                                +91 90212 56647
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                Deolali Camp
-                              </p>
-                            </div>
-                          </div>
-                          <div
-                            className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
-                            onClick={() => handlePhoneClick("+918149049104")}
-                          >
-                            <Phone className="text-teal-600 mr-4" size={24} />
-                            <div>
-                              <p className="font-semibold text-gray-800">
-                                +91 81490 49104
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                Nashik Road
-                              </p>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
                     {/* WhatsApp */}
                     <div
-                      className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer hover:bg-white/70 transition-colors"
+                      className="flex items-center p-4 bg-white/50 rounded-xl border border-white/50 cursor-pointer transition-colors"
                       onClick={handleWhatsAppClick}
                     >
                       <MessageCircle className="text-teal-600 mr-4" size={24} />
@@ -549,22 +589,21 @@ const TreatmentPage2 = () => {
                   </div>
 
                   <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleBookAppointment}
-                    className="w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white font-bold py-4 px-6 rounded-2xl hover:shadow-lg transition-all duration-300 text-lg"
+                    className="w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 text-lg"
                   >
                     {appointmentData?.button_text || "Book Appointment Now"}
                   </motion.button>
-                </div>
+                </motion.div>
 
-                {/* Why Choose Us Section */}
+                {/* Why Choose Us Section - Also Sticky */}
                 {why_choose_items && why_choose_items.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 }}
-                    className="bg-gradient-to-br from-teal-600 to-blue-700 rounded-3xl p-8 text-white"
+                    className="bg-gradient-to-br from-teal-600 to-blue-700 rounded-3xl p-8 text-white shadow-lg"
                   >
                     <div className="text-center mb-8">
                       <h3 className="text-2xl font-bold mb-2">Why Choose Us</h3>
@@ -582,7 +621,6 @@ const TreatmentPage2 = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.8 + index * 0.1 }}
-                            whileHover={{ x: 5 }}
                             className="flex items-start bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20"
                           >
                             <IconComponent
@@ -604,14 +642,16 @@ const TreatmentPage2 = () => {
                     </div>
                   </motion.div>
                 )}
-              </motion.div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Clinic Info Section */}
-      <ClinicInfo />
+      {/* Clinic Info Section - Now starts earlier */}
+      <div className="bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50">
+        <ClinicInfo />
+      </div>
     </div>
   );
 };
@@ -660,9 +700,6 @@ const Section = ({ section, index }) => {
                 }
                 alt={h2}
                 className="w-full h-80 object-cover"
-                onError={(e) => {
-                  // e.target.src = "/images/default-section.jpg";
-                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
 
@@ -678,7 +715,7 @@ const Section = ({ section, index }) => {
 
         {/* Content Side */}
         <div className={image ? "lg:w-1/2" : "w-full"}>
-          <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/50">
+          <div className="backdrop-blur-sm rounded-3xl p-8 border border-white/50 bg-white/80 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">{h2}</h2>
 
             {content && (

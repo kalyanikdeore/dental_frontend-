@@ -35,8 +35,8 @@ const GalleryPage = () => {
   const [clinicsList, setClinicsList] = useState([]);
 
   // API base URL
-  const API_BASE_URL = "http://127.0.0.1:8000/api";
-  //  const API_BASE_URL = "https://careandcurenasik.demovoting.com/api";
+  // const API_BASE_URL = "http://127.0.0.1:8000/api";
+  const API_BASE_URL = "https://careandcurenasik.demovoting.com/api";
 
   // Fetch all clinics for navigation
   useEffect(() => {

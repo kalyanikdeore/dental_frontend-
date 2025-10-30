@@ -143,7 +143,7 @@ const BlogPage = () => {
 
   if (blogsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading articles...</p>
@@ -154,7 +154,7 @@ const BlogPage = () => {
 
   if (blogsError) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 pt-30 flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h3 className="text-2xl font-bold text-gray-600 mb-4">
             Error Loading Articles
@@ -174,8 +174,8 @@ const BlogPage = () => {
   return (
     <div className="min-h-screen bg-cream-50 pt-40">
       {/* Header Section */}
-      <section className="bg-teal-700 py-20">
-        <div className="container mx-auto px-6 text-center">
+      <section className="bg-teal-700 py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -197,13 +197,11 @@ const BlogPage = () => {
       </section>
 
       {/* Blog Content */}
-      <section className="py-16">
-        <div className="container mx-auto px-6">
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Main Content */}
-            <div className="lg:w-3/4 px-4 lg:px-6">
-              {" "}
-              {/* Added padding here */}
+            <div className="lg:w-3/4">
               {/* Search and Filter Section */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -252,6 +250,7 @@ const BlogPage = () => {
                   </div>
                 </div>
               </motion.div>
+
               {/* Blog Grid */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -323,6 +322,7 @@ const BlogPage = () => {
                   </motion.article>
                 ))}
               </motion.div>
+
               {/* No Results Message */}
               {currentBlogs.length === 0 && !blogsLoading && (
                 <motion.div
@@ -338,6 +338,7 @@ const BlogPage = () => {
                   </p>
                 </motion.div>
               )}
+
               {/* Pagination */}
               {pagination.last_page > 1 && (
                 <motion.div
@@ -384,9 +385,7 @@ const BlogPage = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="lg:w-1/4 px-4 lg:px-6">
-              {" "}
-              {/* Added padding here */}
+            <div className="lg:w-1/4">
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
